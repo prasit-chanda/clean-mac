@@ -1,8 +1,8 @@
 # clean-mac
 
-Performs a safe and thorough cleanup of system and user caches, logs, temporary files, and Trash. 
+clean-mac performs a safe and thorough cleanup of system and user caches, logs, temporary files, and Trash. 
 Also clears Homebrew residual files and provides a detailed report of disk space reclaimed. 
-Tested on macOS Sequoia version 15.5.
+Tested on macOS Sequoia version 15.0, 15.1, 15.2, 15.3, 15.4, 15.5
 
 Instructions
 -------------
