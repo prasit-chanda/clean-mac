@@ -1,2 +1,11 @@
 # clean-mac
-Safely removes unused system/user cache, logs, temp files, empties trash, clears Homebrew leftovers, and reports space freed
+
+Performs a safe and thorough cleanup of system and user caches, logs, temporary files, and Trash. 
+Also clears Homebrew residual files and provides a detailed report of disk space reclaimed. 
+Tested on macOS Sequoia version 15.5.
+
+Instruction
+------------
+1. Save it to workspace, e.g., clean-mac.zsh
+2. Make it executable by chmod +x clean-mac.zsh
+3. Run it by ./clean-mac.zsh
