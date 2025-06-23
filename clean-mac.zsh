@@ -240,6 +240,9 @@ check_mac_dependencies
 # Ask for sudo once at the start
 sudo -v
 
+# Keep sudo session alive
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
 # Measure free disk space before
 space_before=$(get_free_space)
 
