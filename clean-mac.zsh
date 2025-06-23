@@ -4,25 +4,25 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.2.7
+# Version: 1.3.3
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
-# Last Updated: 2025-06-21
+# Last Updated: 2025-06-23
 # ------------------------------------------------------------------------------
 
 # ───── Colors Variables ─────
-GREEN=$'\e[32m'    # Green
-YELLOW=$'\e[33m'   # Yellow
-RED=$'\e[31m'      # Red
-BLUE=$'\e[34m'     # Blue
-CYAN=$'\e[36m'     # Cyan
+GREEN=$'\e[92m'    # Green
+YELLOW=$'\e[93m'   # Yellow
+RED=$'\e[91m'      # Red
+BLUE=$'\e[94m'     # Blue
+CYAN=$'\e[96m'     # Cyan
 RESET=$'\e[0m'     # Reset all attributes
 
 # ───── Global Variables ─────
 # Version info
-VER="1.2.7-2025062109"
+VER="1.3.3-2025062339"
 # Date info
-DATE=$(date)
+DATE=$(date "+%a, %d %b %Y %H:%M:%S %p")
 # Timestamp info
 TS=$(date +"%Y%m%d%H%M%S")
 # Log file info
@@ -43,8 +43,6 @@ MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB"
 SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }')
 # Get Uptime info
 UPTIME=$(uptime | cut -d ',' -f1 | xargs)
-# Get SWAP memory info
-SWAP=$(sysctl vm.swapusage | awk -F': ' '{print "" $2}')
 # Get main disk info
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | head -n 1 | xargs)
@@ -183,11 +181,22 @@ check_mac_dependencies() {
   if [[ $dependencies_status -eq 0 ]]; then
     echo "Dependency check complete. Ready to execute script."
   else
-    echo "❌ Dependencies did not comply."
-    echo "🚫 Terminating script execution."
+    echo "Dependencies did not comply"
+    echo "❌ Terminating script execution"
     exit 1
   fi
   echo "${RESET}"
+}
+# Function to print info about execution
+print_info() {
+  local words=(${(z)1})  # split message into words
+  local i=1
+  print -P "%F{cyan}"
+  for word in $words; do
+    print -n -P "$word "
+    (( i++ % 20 == 0 )) && print
+  done
+  print -P "%f\n"
 }
 
 # ───── Script Starts ─────
@@ -203,7 +212,7 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
 echo ""
 print_box "macOS Cleanup Script"
 echo ""
-echo "${CYAN}$(DATE)${RESET}"
+echo "${CYAN}$DATE${RESET}"
 echo ""
 fancy_header " System Details "
 echo "${GREEN}"
@@ -212,7 +221,6 @@ echo "CPU         : $CPU"
 echo "RAM         : $MEM"
 echo "Capacity    : $DISK_SIZE"
 echo "Serial      : $SERIAL"
-echo "Swap        : $SWAP"
 echo "OS Name     : $OS_NAME"
 echo "OS Version  : $OS_VERSION"
 echo "Build       : $OS_BUILD"
@@ -240,7 +248,7 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 # Step 1: Clear user caches
 fancy_header " Cleaning Caches "
-echo ""
+print_info "Clearing user caches frees space, removes junk, and improves performance and stability"
 # Use find for more efficient file operations
 counter=0
 find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
@@ -262,7 +270,7 @@ echo ""
 
 # Step 2: Clean old system logs older than 7 days
 fancy_header " Cleaning Logs "
-echo ""
+print_info "Cleaning logs older than 7 days to save disk space and improve performance"
 # Find old files and store in array
 old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}")
 # Clean empty entries
@@ -280,7 +288,7 @@ echo ""
 
 # Step 3: Empty Trash/Bin
 fancy_header " Cleaning Trash "
-echo ""
+print_info "Clearing Trash frees disk space and prevents clutter, vital for active users"
 # Empty User Trash
 trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null 2>/dev/null)}")
 # Clean empty entries
@@ -325,7 +333,7 @@ echo ""
 
 # Step 4: Clean temporary files older than 3 days
 fancy_header " Cleaning Files "
-echo ""
+print_info "Temporary files slow systems; cleaning unused files (3+ days) improves performance"
 # Clean various temp directories
 clean_temp_files "/tmp" "system temporary directory"
 clean_temp_files "/var/tmp" "variable temporary directory"
@@ -334,7 +342,7 @@ echo ""
 
 # Step 5: Clean old Downloads
 fancy_header " Cleaning Downloads "
-echo ""
+print_info "The Downloads folder fills with old files; regularly deleting files frees space"
 old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
 # Clean empty entries
 old_files=(${old_files:#""}) 
@@ -351,8 +359,7 @@ echo ""
 
 # Step 6: Homebrew cleanup
 fancy_header " Cleaning Homebrew "
-echo ""
-echo "Homebrew is a popular package manager for macOS that simplifies the installation of software and tools${BLUE}"
+print_info "Homebrew is a popular macOS package manager for installing and managing software${BLUE}"
 if command -v brew >/dev/null 2>&1; then
   brew config
   brew info
@@ -365,7 +372,7 @@ echo ""
 
 # Step 7: Purge inactive memory (if possible)
 fancy_header " Cleaning Memory "
-echo ""
+print_info "Freeing inactive memory to boost performance without closing any running applications"
 if command -v purge >/dev/null 2>&1; then
   sudo purge
   echo "${GREEN}Inactive memory purged${RESET}"
