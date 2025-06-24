@@ -200,6 +200,13 @@ print_info() {
 }
 
 # ───── Script Starts ─────
+
+# Ensure the OS is macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo "❌ Unsupported OS: This script only works on macOS." >&2
+    exit 1
+fi
+
 setopt local_options nullglob extended_glob
 clear
 
