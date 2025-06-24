@@ -7,7 +7,7 @@
 # Version: 1.3.3
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
-# Last Updated: 2025-06-23
+# Last Updated: 2025-06-24
 # ------------------------------------------------------------------------------
 
 # ───── Colors Variables ─────
@@ -20,7 +20,7 @@ RESET=$'\e[0m'     # Reset all attributes
 
 # ───── Global Variables ─────
 # Version info
-VER="1.3.3-2025062339"
+VER="1.3.3-20250624AD3"
 # Date info
 DATE=$(date "+%a, %d %b %Y %H:%M:%S %p")
 # Timestamp info
@@ -198,6 +198,38 @@ print_info() {
   done
   print -P "%f\n"
 }
+# Function to print summary
+print_summary() {
+    print_box " Cleanup Summary "
+    echo ""
+    echo "System:"
+    echo "  Model: $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
+    echo "  CPU: $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
+    echo "  RAM: $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
+    echo "  macOS: $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
+    echo "  Uptime: $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
+    echo ""
+    echo "Cleanup Performed:"
+    [[ $user_caches_cleaned -gt 0 ]] && echo "  • User caches cleaned ($user_caches_cleaned folders)" || echo "  • No user caches cleaned"
+    [[ $logs_cleaned -gt 0 ]] && echo "  • Old log files cleaned ($logs_cleaned files)" || echo "  • No old log files found"
+    [[ $trash_cleaned -gt 0 ]] && echo "  • Trash cleaned ($trash_cleaned files)" || echo "  • Trash already empty"
+    [[ $downloads_cleaned -gt 0 ]] && echo "  • Old Downloads cleaned ($downloads_cleaned files)" || echo "  • No old files in Downloads"
+    [[ $homebrew_cleaned == 1 ]] && echo "  • Homebrew cleanup complete" || echo "  • Homebrew not cleaned"
+    [[ $memory_purged == 1 ]] && echo "  • Inactive memory purged" || echo "  • Memory purge not available"
+    # Measure free disk space after cleanup
+    space_after=$(get_free_space)
+    space_freed=$(( space_after - space_before ))
+    echo ""
+    echo "Results:"
+    echo "  Disk cleanup completed"
+    echo "  Disk space freed: $(human_readable_space $space_freed)"
+    echo "  Log file: $LOGFILE"
+    echo "  Script version: $VER"
+    echo "  Author: Prasit Chanda © $(date +%Y)"
+    echo ""
+    fancy_divider 40 "="
+    echo ""
+}
 
 # ───── Script Starts ─────
 
@@ -273,6 +305,7 @@ find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
 done
 if (( counter > 0 )); then
   echo "${GREEN}User Cache cleanup completed${RESET}"
+  user_caches_cleaned=$counter
 else
   echo "${YELLOW}User Cache Directories are clean — no files to clean${RESET}"
 fi
@@ -287,12 +320,14 @@ old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}"
 old_logs=(${old_logs:#""})  
 if (( ${#old_logs[@]} == 0 )); then
   echo "${YELLOW}LOG is clean — no files to clean${RESET}"
+  logs_cleaned=0
 else
   for file in "${old_logs[@]}"; do
     echo "${BLUE}Cleaning LOG File: $file${RESET}"
     sudo rm -f "$file"
   done
   echo "${GREEN}${#old_logs[@]} old LOG files cleaned${RESET}"
+  logs_cleaned=${#old_logs[@]}
 fi
 echo ""
 
@@ -312,6 +347,7 @@ else
   osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
   echo "${GREEN}${#trash_files[@]} files cleaned${RESET}"  
   echo "${GREEN}Trash for current user has been cleaned${RESET}"
+  trash_cleaned=${#trash_files[@]}
 fi
 
 # Empty System Trash
@@ -322,6 +358,7 @@ if [[ -d "$system_trash" ]]; then
   else
     sudo rm -rf "$system_trash"/* 2>/dev/null
     echo "${GREEN}Trash for system has been cleaned${RESET}"
+    trash_cleaned=1
   fi
 else
   echo "${YELLOW}System Trash folder not accessible${RESET}"
@@ -338,6 +375,7 @@ for volume in /Volumes/*; do
     else
       sudo rm -rf "$trashes_dir"/* 2>/dev/null
       echo "${GREEN}Cleaned trash on volume: $volume${RESET}"
+      trash_cleaned=1
     fi
   fi
 done
@@ -363,12 +401,14 @@ old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)
 old_files=(${old_files:#""}) 
 if (( ${#old_files[@]} == 0 )); then
   echo "${YELLOW}Downloads is clean — no files to clean${RESET}"  
+  downloads_cleaned=0
 else
   for file in "${old_files[@]}"; do
     echo "${BLUE}Cleaning File: $file${RESET}"
     rm -f "$file"
   done
     echo "${GREEN}${#old_files[@]} files cleaned${RESET}"
+    downloads_cleaned=${#old_files[@]}
 fi
 echo ""
 
@@ -383,8 +423,10 @@ if command -v brew >/dev/null 2>&1; then
   echo "${BLUE}Running: brew cleanup -s${RESET}"
   brew cleanup -s
   echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
+  homebrew_cleaned=1
 else
   echo "${YELLOW}Homebrew not installed, skipping process${RESET}"
+  homebrew_cleaned=0
 fi
 echo ""
 
@@ -392,45 +434,27 @@ echo ""
 fancy_header " Cleaning Memory "
 print_info "Freeing inactive memory to boost performance without closing any running applications"
 if command -v purge >/dev/null 2>&1; then
-  sudo purge
-  echo "${GREEN}Inactive memory purged${RESET}"
+    sudo purge
+    echo "${GREEN}Inactive memory purged.${RESET}"
+    memory_purged=1
 else
-  echo "${RED}'purge' command not available, skipping process${RESET}"
+    echo "${RED}'purge' command not available. Skipping process.${RESET}"
+    memory_purged=0
 fi
 echo ""
 
-# Measure free disk space after cleanup
-space_after=$(get_free_space)
-space_freed=$(( space_after - space_before ))
+# Print the cleanup summary
+print_summary
 
-# Display results
-echo "${GREEN}Disk cleanup successfully completed${RESET}"
-if (( space_freed > 0 )); then
-  echo "${GREEN}Disk Freed $(human_readable_space $space_freed)${RESET}"
-elif (( space_freed < 0 )); then
-  echo "${YELLOW}No noticeable disk space change due to background processes${RESET}"
-else
-  echo "${YELLOW}Disk space unchanged${RESET}"
-fi
-echo "${GREEN}Log PATH ${LOGFILE}${RESET}"
-echo ""
-
-# Footer
-fancy_divider 25 "="
-echo "Version ${VER}"
-echo "Prasit Chanda © $(date +%Y)"
-fancy_divider 25 "="
-echo ""
-
-# Flush filesystem buffers to ensure all changes are written to disk
+# Flush filesystem buffers to ensure all changes are written to disk.
 sync
 
-# Close file descriptors (for tee subshells)
+# Close file descriptors (for tee subshells).
 exec 1>&- 2>&-
 
-# Open the log file in Console (if available)
+# Open the log file in Console (if available).
 if command -v open >/dev/null 2>&1; then
-    open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console${RESET}"
+    open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
 fi
 
 exit 0
