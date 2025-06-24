@@ -292,20 +292,21 @@ echo ""
 # Step 3: Empty Trash/Bin
 fancy_header " Cleaning Trash "
 print_info "Clearing Trash frees disk space and prevents clutter, vital for active users"
+
 # Empty User Trash
-trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null 2>/dev/null)}")
-# Clean empty entries
+trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null)}")
 trash_files=(${trash_files:#""}) 
 if (( ${#trash_files[@]} == 0 )); then
   echo "${YELLOW}User Trash is clean — no files to clean${RESET}"
 else
-   for file in "${trash_files[@]}"; do
+  for file in "${trash_files[@]}"; do
     echo "${BLUE}Cleaning File: $file${RESET}"
   done
   osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
   echo "${GREEN}${#trash_files[@]} files cleaned${RESET}"  
   echo "${GREEN}Trash for current user has been cleaned${RESET}"
 fi
+
 # Empty System Trash
 system_trash="/private/var/root/.Trash"
 if [[ -d "$system_trash" ]]; then
@@ -318,25 +319,29 @@ if [[ -d "$system_trash" ]]; then
 else
   echo "${YELLOW}System Trash folder not accessible${RESET}"
 fi
+
 # Trash on all mounted volumes
+found_volume=0
 for volume in /Volumes/*; do
   trashes_dir="$volume/.Trashes"
   if [[ -d "$trashes_dir" ]]; then
+    found_volume=1
     if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
       echo "${YELLOW}Trash already clean on volume: $volume${RESET}"
     else
       sudo rm -rf "$trashes_dir"/* 2>/dev/null
       echo "${GREEN}Cleaned trash on volume: $volume${RESET}"
     fi
-  else 
-    echo "${YELLOW}No Mounted Volume found${RESET}"
   fi
 done
+if [[ $found_volume -eq 0 ]]; then
+  echo "${YELLOW}No Mounted Volume found${RESET}"
+fi
 echo ""
 
 # Step 4: Clean temporary files older than 3 days
 fancy_header " Cleaning Files "
-print_info "Temporary files slow systems; cleaning unused files (3+ days) improves performance"
+print_info "Temporary files slow systems, cleaning unused files (3+ days) improves performance"
 # Clean various temp directories
 clean_temp_files "/tmp" "system temporary directory"
 clean_temp_files "/var/tmp" "variable temporary directory"
@@ -345,7 +350,7 @@ echo ""
 
 # Step 5: Clean old Downloads
 fancy_header " Cleaning Downloads "
-print_info "The Downloads folder fills with old files; regularly deleting files frees space"
+print_info "The Downloads folder fills with old files, regularly deleting files frees space"
 old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
 # Clean empty entries
 old_files=(${old_files:#""}) 
@@ -364,8 +369,11 @@ echo ""
 fancy_header " Cleaning Homebrew "
 print_info "Homebrew is a popular macOS package manager for installing and managing software${BLUE}"
 if command -v brew >/dev/null 2>&1; then
+  echo "${BLUE}Running: brew config${RESET}"
   brew config
+  echo "${BLUE}Running: brew info${RESET}"
   brew info
+  echo "${BLUE}Running: brew cleanup -s${RESET}"
   brew cleanup -s
   echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
 else
@@ -384,16 +392,16 @@ else
 fi
 echo ""
 
-# Measure free disk space after
+# Measure free disk space after cleanup
 space_after=$(get_free_space)
 space_freed=$(( space_after - space_before ))
 
-# Display result
+# Display results
 echo "${GREEN}Disk cleanup successfully completed${RESET}"
 if (( space_freed > 0 )); then
   echo "${GREEN}Disk Freed $(human_readable_space $space_freed)${RESET}"
 elif (( space_freed < 0 )); then
- echo "${YELLOW}No noticeable disk space change due to background processes${RESET}"
+  echo "${YELLOW}No noticeable disk space change due to background processes${RESET}"
 else
   echo "${YELLOW}Disk space unchanged${RESET}"
 fi
@@ -406,12 +414,16 @@ echo "Version ${VER}"
 echo "Prasit Chanda © $(date +%Y)"
 fancy_divider 25 "="
 echo ""
-setopt nomatch
 
-# Force file system to flush cached writes
-sync "${LOGFILE}" 
-# Optional: close file descriptors (less effective with tee in subshells)
+# Flush filesystem buffers to ensure all changes are written to disk
+sync
+
+# Close file descriptors (for tee subshells)
 exec 1>&- 2>&-
-# Open the log file
-open -a "Console" "${LOGFILE}"
-exit
+
+# Open the log file in Console (if available)
+if command -v open >/dev/null 2>&1; then
+    open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console${RESET}"
+fi
+
+exit 0
