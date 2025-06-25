@@ -1,43 +1,53 @@
- 🛠️  macOS Cleanup Script
- 
-    Script    : clean-mac.zsh
-    Purpose   : Safely cleans unused system/user cache, logs, temp files, empties 
-                trash, clears Homebrew leftovers, and reports space freed
-    Author    : Prasit Chanda
-    Platform  : macOS
+# 🛠️ clean-mac.zsh — Your Easy macOS Cleanup Tool
 
- 📄 Overview:
- 
-    The clean-mac.zsh script is a comprehensive macOS maintenance tool designed to safely clean up system 
-    and user cache, logs, temporary files, old downloads, and trash. It also performs Homebrew cleanup, checks 
-    system dependencies, and reports the amount of disk space freed. The script helps improve system performance, 
-    free up storage, and maintain a clutter-free Mac environment, while providing detailed logs and system 
-    information for transparency and troubleshooting.
+**Author:** Prasit Chanda  
+**Platform:** macOS
 
- ✅ Key Features:
- 
-    The key features of clean-mac.zsh include comprehensive system maintenance and cleanup for macOS. 
-    It displays detailed system information such as OS version, hardware specs, and network details. 
-    The script safely cleans user and system caches, removes old logs, empties Trash, deletes temporary 
-    files, and clears out old downloads to free up disk space. It also performs Homebrew cleanup, checks 
-    for required dependencies, and can attempt to purge inactive memory. Throughout its execution, 
-    the script provides clear, color-coded, and formatted output for each step, tracks execution time, 
-    and logs all actions and results to a timestamped log file for easy review and transparency.
-        
- 📁 Output
- 
-    The output of the clean-mac.zsh script provides a clear, step-by-step summary of all maintenance 
-    actions performed on your Mac. It begins by displaying detailed system information, including hardware 
-    specs, OS version, network details, and uptime. As the script runs, it shows formatted and color-coded 
-    messages for each cleanup stage—such as clearing caches, logs, temporary files, downloads, and 
-    Trash—indicating what was cleaned, skipped, or already tidy. It also reports on Homebrew cleanup and 
-    memory purging if available. At the end, the script summarizes the total disk space freed and provides 
-    the path to a timestamped log file containing all actions and results, ensuring transparency and easy 
-    review of the maintenance session.
+---
 
- 💡 Instructions
+## 📄 What is clean-mac.zsh?
 
-    1. Save it to workspace, e.g., clean-mac.zsh
-    2. Make it executable by chmod +x clean-mac.zsh
-    3. Run it by ./clean-mac.zsh
-    4. Logs are generated within execution folder
+**clean-mac.zsh** is a simple, all-in-one script to keep your Mac fast and clutter-free. With one command, it safely removes system and user caches, 
+logs, temp files, old downloads, empties your Trash, cleans up Homebrew 
+leftovers, and shows you how much space you saved. You also get a detailed 
+log for every run.
+
+---
+
+## ✅ Features
+
+- **Completely Free:** 100% free for all Mac users — no sign-up, no ads, no hidden costs.
+- **One-Click Cleanup:** Cleans caches, logs, temp files, downloads, and Trash.
+- **Homebrew Support:** Removes old Homebrew files and checks dependencies.
+- **System Info:** Shows your Mac’s OS version, hardware, network, and uptime.
+- **Clear Output:** Color-coded, step-by-step messages for every action.
+- **Full Log:** Saves a timestamped log file for every session.
+
+---
+
+## 📁 What You See
+
+- **System Details:** Hardware, OS, network, and uptime at the start.
+- **Cleanup Progress:** See what’s cleaned, skipped, or already tidy — in real time.
+- **Summary:** Total disk space freed and a link to your log file.
+
+---
+
+## 💡 How to Use
+
+1. **Download:** Save the script as `clean-mac.zsh` in your workspace.
+2. **Make Executable:**  
+   ```sh
+   chmod +x clean-mac.zsh
+   ```
+3. **Run the Script:**  
+   ```sh
+   ./clean-mac.zsh
+   ```
+4. **Check Logs:**  
+   A log file is created in the folder where you run the script.
+
+---
+
+Give your Mac a fresh start — safely, quickly, and with confidence.  
+**And best of all, it’s completely free!**

@@ -26,7 +26,7 @@ DATE=$(date "+%a, %d %b %Y %H:%M:%S %p")
 # Timestamp info
 TS=$(date +"%Y%m%d%H%M%S")
 # Log file info
-LF="mac-clean-${TS}.log"
+LF="clean-mac-${TS}.log"
 # Working directory info
 WD=$PWD
 # Log file info
