@@ -21,7 +21,7 @@ RESET=$'\033[0m'       # Reset all attributes
 
 # ───── Global Variables ─────
 # Version info
-VER="1.3.3-20250624AD3"
+VER="1.3.6-20250624AD3"
 # Date info
 DATE=$(date "+%a, %d %b %Y %H:%M:%S %p")
 # Timestamp info
@@ -99,6 +99,7 @@ print_box() {
   done
   echo "$border_bottom"
 }
+
 # Custom Divider
 fancy_divider() {
   #Total width of the divider
@@ -111,6 +112,7 @@ fancy_divider() {
   done
   print -r -- "$line"
 }
+
 # Custom Header
 fancy_header() {
   local label="$1"
@@ -120,10 +122,12 @@ fancy_header() {
   printf " %s " "$label"
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
 }
+
 # Function to get free disk space in bytes
 get_free_space() {
   df -k / | tail -1 | awk '{print $4 * 1024}'
 }
+
 # Function to convert bytes to human-readable format
 human_readable_space() {
   local bytes=$1
@@ -137,6 +141,7 @@ human_readable_space() {
     echo "$(( bytes / 1024 / 1024 / 1024 )) Gigabyte(GB)"
   fi
 }
+
 # Function to safely clean temp files
 clean_temp_files() {
     local dir="$1"
@@ -152,6 +157,7 @@ clean_temp_files() {
         echo "${YELLOW}No old files found in $description${RESET}"
     fi
 }
+
 # Function to check execution dependencies
 check_mac_dependencies() {
   local dependencies_status=0
@@ -188,17 +194,19 @@ check_mac_dependencies() {
   fi
   echo "${RESET}"
 }
+
 # Function to print info about execution
 print_info() {
   local words=(${(z)1})  # split message into words
   local i=1
-  print -P "%F{cyan}"
+  print -Pn "%F{cyan}ⓘ "
   for word in $words; do
     print -n -P "$word "
     (( i++ % 20 == 0 )) && print
   done
   print -P "%f\n"
 }
+
 # Function to print summary
 print_summary() {
     print_box " Cleanup Summary "
@@ -222,8 +230,13 @@ print_summary() {
     space_freed=$(( space_after - space_before ))
     echo ""
     echo "Results:"
-    echo "  Disk cleanup completed"
-    echo "  Disk space freed: $(human_readable_space $space_freed)"
+    if (( space_freed > 0 )); then
+        echo "${GREEN}  Disk space freed: $(human_readable_space $space_freed)${RESET}"
+    elif (( space_freed < 0 )); then
+        echo "${YELLOW}  No noticeable disk space.${RESET}"
+    else
+        echo "${YELLOW}  Disk space unchanged.${RESET}"
+    fi
     echo "  Log file: $LOGFILE"
     echo "  Script version: $VER"
     echo "  Author: Prasit Chanda © $(date +%Y)"
