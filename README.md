@@ -1,3 +1,4 @@
+ॐ नमः शिवाय
 # 🧹 Clean Smart — not Hard
 
 **Script:** `clean-mac.zsh`  
@@ -49,4 +50,4 @@ Homebrew leftovers, and shows you how much space you saved. You also get a detai
 
 ---
 
-.˳·˖✶𓆩 Give your Mac a fresh start — safely, quickly, and with confidence 𓆪✶˖·˳.  
+꧁.˳·˖✶𓆩 Give your Mac a fresh start — safely, quickly, and with confidence 𓆪✶˖·˳.꧂
