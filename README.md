@@ -1,5 +1,5 @@
 ॐ नमः शिवाय
-# 🧹 Clean Smart — not Hard
+# 🧹 Clean Smart, not Hard
 
 **Script:** `clean-mac.zsh`  
 **Author:** Prasit Chanda  
