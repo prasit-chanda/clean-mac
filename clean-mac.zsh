@@ -275,6 +275,7 @@ print_summary() {
 }
 
 # ───── Script Starts ─────
+clear
 
 # Ensure the script is run with zsh
 if [[ -z "$ZSH_VERSION" ]]; then
@@ -297,7 +298,6 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
      2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
 
 # Print the initial box with script info
-clear
 echo ""
 print_box "macOS Cleanup"
 echo ""
