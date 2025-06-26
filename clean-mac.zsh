@@ -116,7 +116,7 @@ fancy_divider() {
 # Custom Header
 fancy_header() {
   local label="$1"
-  local total_width=80
+  local total_width=50
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
   print -Pn "%F{blue}"
   printf '%*s' "$padding_width" '' | tr ' ' '='
