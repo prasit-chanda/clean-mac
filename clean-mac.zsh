@@ -219,12 +219,12 @@ print_summary() {
     echo "  Uptime: $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
     echo ""
     echo "Cleanup Performed:"
-    [[ $user_caches_cleaned -gt 0 ]] && echo "  • User caches cleaned ($user_caches_cleaned folders)" || echo "  • No user caches cleaned"
-    [[ $logs_cleaned -gt 0 ]] && echo "  • Old log files cleaned ($logs_cleaned files)" || echo "  • No old log files found"
-    [[ $trash_cleaned -gt 0 ]] && echo "  • Trash cleaned ($trash_cleaned files)" || echo "  • Trash already empty"
-    [[ $downloads_cleaned -gt 0 ]] && echo "  • Old Downloads cleaned ($downloads_cleaned files)" || echo "  • No old files in Downloads"
-    [[ $homebrew_cleaned == 1 ]] && echo "  • Homebrew cleanup complete" || echo "  • Homebrew not cleaned"
-    [[ $memory_purged == 1 ]] && echo "  • Inactive memory purged" || echo "  • Memory purge not available"
+    [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  • No user caches cleaned ${RESET}"
+    [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  • No old log files found ${RESET}"
+    [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  • Trash already empty ${RESET}"
+    [[ $downloads_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || echo "${YELLOW}  • No old files in Downloads ${RESET}"
+    [[ $homebrew_cleaned == 1 ]] && echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || echo "${YELLOW}  • Homebrew not cleaned ${RESET}"
+    [[ $memory_purged == 1 ]] && echo "${GREEN}  ✔ Inactive memory purged ${RESET}" || echo "${YELLOW}  • Memory purge not available ${RESET}"
     # Measure free disk space after cleanup
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
@@ -428,7 +428,7 @@ echo ""
 
 # Step 6: Homebrew cleanup
 fancy_header " Cleaning Homebrew "
-print_info "Homebrew is a popular macOS package manager for installing and managing software${BLUE}"
+print_info "Homebrew is a popular macOS package manager for installing and managing software"
 if command -v brew >/dev/null 2>&1; then
   echo "${BLUE}Running: brew config${RESET}"
   brew config
