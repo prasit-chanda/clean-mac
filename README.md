@@ -9,9 +9,11 @@
 
 ## 🤷 What is clean-mac.zsh?
 
-**clean-mac.zsh** is a simple, all-in-one script to keep your Mac fast and clutter-free. With one command, 
-it safely removes system and user caches, logs, temp files, old downloads, empties your Trash, cleans up 
-Homebrew leftovers, and shows you how much space you saved. You also get a detailed log for every run.
+**clean-mac.zsh** is your Mac’s unofficial janitor — the one that actually shows up. 
+With a single command, it scrubs away system and user junk: caches, logs, temporary 
+clutter, dusty old downloads, and whatever’s been rotting in your Trash. It even cleans 
+up after Homebrew’s bad habits (because who else will?). At the end, it smugly tells you 
+how much space it saved — and logs every step, just in case you want receipts.
 
 ---
 
