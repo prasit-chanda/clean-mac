@@ -4,7 +4,7 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.3.3
+# Version: 1.3.6
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
 # Last Updated: 2025-06-24
@@ -21,7 +21,7 @@ RESET=$'\033[0m'       # Reset all attributes
 
 # ───── Global Variables ─────
 # Version info
-VER="1.3.6-20250624AD3"
+VER="1.3.6-20250626FSDI"
 # Date info
 DATE=$(date "+%a, %d %b %Y %H:%M:%S %p")
 # Timestamp info
@@ -32,6 +32,8 @@ LF="clean-mac-${TS}.log"
 WD=$PWD
 # Log file info
 LOGFILE="${WD}/${LF}"
+# Author info (dynamic)
+AUTHOR="Prasit Chanda"
 # OS Name and Version info
 OS_NAME=$(sw_vers -productName)
 OS_VERSION=$(sw_vers -productVersion)
@@ -239,7 +241,7 @@ print_summary() {
     fi
     echo "  Log file: $LOGFILE"
     echo "  Script version: $VER"
-    echo "  Author: Prasit Chanda © $(date +%Y)"
+    echo "  Author: ${AUTHOR} © $(date +%Y)"
     echo ""
     fancy_divider 40 "="
     echo ""
