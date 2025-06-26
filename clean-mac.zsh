@@ -128,6 +128,18 @@ fancy_header() {
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
 }
 
+# Function to print info about execution
+print_info() {
+  local words=(${(z)1})  # split message into words
+  local i=1
+  print -Pn "%F{cyan}ⓘ "
+  for word in $words; do
+    print -n -P "$word "
+    (( i++ % 20 == 0 )) && print
+  done
+  print -P "%f\n"
+}
+
 # Function to get free disk space in bytes
 get_free_space() {
   df -k / | tail -1 | awk '{print $4 * 1024}'
@@ -200,18 +212,6 @@ check_mac_dependencies() {
   echo "${RESET}"
 }
 
-# Function to print info about execution
-print_info() {
-  local words=(${(z)1})  # split message into words
-  local i=1
-  print -Pn "%F{cyan}ⓘ "
-  for word in $words; do
-    print -n -P "$word "
-    (( i++ % 20 == 0 )) && print
-  done
-  print -P "%f\n"
-}
-
 # Function to print summary
 print_summary() {
     print_box " Cleanup Summary "
@@ -280,7 +280,7 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
 
 # System Details
 echo ""
-print_box "macOS Cleanup Script"
+print_box "macOS Cleanup"
 echo ""
 echo "${CYAN}$DATE${RESET}"
 echo ""
