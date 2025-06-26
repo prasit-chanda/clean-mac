@@ -68,6 +68,9 @@ if [[ "$ACTIVE_IF" == en* ]]; then
 else
   SSID="(Not a network interface)"
 fi
+# Get memory usage before cleanup
+MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
+MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 ))
 # List of protected cache folders
 protected_caches=(
   "CloudKit"
@@ -230,14 +233,26 @@ print_summary() {
     # Measure free disk space after cleanup
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
+    # Get memory usage after purge
+    MEM_AFTER=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
+    MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
+    # Calculate memory freed
+    MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
+    MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
     echo ""
     echo "Results:"
+    # Print memory freed
+    if (( MEM_FREED_MB > 0 )); then
+       echo "${GREEN}  RAM freed: $MEM_FREED_MB Megabyte(MB)${RESET}"
+    else
+      echo "${YELLOW}  No additional RAM freed - possibly already optimized${RESET}"
+    fi
     if (( space_freed > 0 )); then
         echo "${GREEN}  Disk space freed: $(human_readable_space $space_freed)${RESET}"
     elif (( space_freed < 0 )); then
-        echo "${YELLOW}  No noticeable disk space.${RESET}"
+        echo "${YELLOW}  No noticeable disk space - possibly already optimized${RESET}"
     else
-        echo "${YELLOW}  Disk space unchanged.${RESET}"
+        echo "${YELLOW}  Disk space unchanged - possibly already optimized${RESET}"
     fi
     echo "  Log file: $LOGFILE"
     echo "  Script version: $VER"
@@ -451,6 +466,7 @@ fancy_header " Cleaning Memory "
 print_info "Freeing inactive memory to boost performance without closing any running applications"
 if command -v purge >/dev/null 2>&1; then
     sudo purge
+    sleep 2
     echo "${GREEN}Inactive memory purged.${RESET}"
     memory_purged=1
 else
