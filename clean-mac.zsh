@@ -79,6 +79,12 @@ protected_caches=(
   "com.apple.WebKit.WebContent"
   "com.apple.Messages"
 )
+# iOS device backup directory
+IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
+# Xcode directories
+# DerivedData and DeviceSupport directories
+XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
+XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 
 # ───── Custom Methods ─────
 # Custom Text Box
@@ -203,7 +209,7 @@ check_mac_dependencies() {
   fi
   # Final decision
   if [[ $dependencies_status -eq 0 ]]; then
-    echo "Dependency check complete. Ready to execute script."
+    echo "Dependencies are in place, proceeding with cleanup"
   else
     echo "Dependencies did not comply"
     echo "❌ Terminating script execution"
@@ -217,19 +223,23 @@ print_summary() {
     print_box " Cleanup Summary "
     echo ""
     echo "System:"
-    echo "  Model: $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
-    echo "  CPU: $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
-    echo "  RAM: $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
-    echo "  macOS: $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
-    echo "  Uptime: $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
+    echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
+    echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
+    echo "  RAM     $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
+    echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
+    echo "  Uptime  $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
     echo ""
     echo "Cleanup Performed:"
-    [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  • No user caches cleaned ${RESET}"
-    [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  • No old log files found ${RESET}"
-    [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  • Trash already empty ${RESET}"
-    [[ $downloads_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || echo "${YELLOW}  • No old files in Downloads ${RESET}"
-    [[ $homebrew_cleaned == 1 ]] && echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || echo "${YELLOW}  • Homebrew not cleaned ${RESET}"
-    [[ $memory_purged == 1 ]] && echo "${GREEN}  ✔ Inactive memory purged ${RESET}" || echo "${YELLOW}  • Memory purge not available ${RESET}"
+    [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  • No junk found in user cache,nothing to clean up ${RESET}"
+    [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  • No outdated logs detected, all set ${RESET}"
+    [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  • No files found in Trash, it's squeaky clean ${RESET}"
+    [[ $downloads_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || echo "${YELLOW}  • Downloads folder looks tidy, no old files to delete ${RESET}"
+    [[ $homebrew_cleaned == 1 ]] && echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || echo "${YELLOW}  • Homebrew is already clean, no leftover files found ${RESET}"
+    [[ $memory_purged == 1 ]] && echo "${GREEN}  ✔ Inactive memory purged ${RESET}" || echo "${YELLOW}  • Memory usage is already clean and efficient ${RESET}"
+    [[ ${ios_backups_cleaned:-0} -gt 0 ]] && echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || echo "${YELLOW}  • No iOS backups found to clean ${RESET}"
+    [[ ${derived_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || echo "${YELLOW}  • No Xcode DerivedData found to clean ${RESET}"
+    [[ ${device_support_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || echo "${YELLOW}  • No Xcode DeviceSupport found to clean ${RESET}"
+    [[ ${docker_cleaned:-0} -eq 1 ]] && echo "${GREEN}  ✔ Docker system pruned ${RESET}" || echo "${YELLOW}  • Docker doesn’t seem to be installed on your system ${RESET}"
     # Measure free disk space after cleanup
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
@@ -266,7 +276,7 @@ print_summary() {
 
 # Ensure the OS is macOS
 if [[ "$(uname)" != "Darwin" ]]; then
-    echo "❌ Unsupported OS: This script only works on macOS." >&2
+    echo "❌ Unsupported OS: This script only works on macOS" >&2
     exit 1
 fi
 
@@ -342,7 +352,63 @@ else
 fi
 echo ""
 
-# Step 2: Clean old system logs older than 7 days
+# Step 2: Clean iOS device backups
+fancy_header " Cleaning iOS Device Backups "
+print_info "Removing old iOS device backups from MobileSync and Backup"
+if [[ -d "$IOS_BACKUP_DIR" ]]; then
+  backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
+  if (( backup_count > 0 )); then
+    echo "${BLUE}Found $backup_count iOS device backup(s)${RESET}"
+    sudo rm -rf "$IOS_BACKUP_DIR"/*
+    echo "${GREEN}All iOS device backups removed${RESET}"
+    ios_backups_cleaned=$backup_count
+  else
+    echo "${YELLOW}No iOS device backups found.{RESET}"
+    ios_backups_cleaned=0
+  fi
+else
+  echo "${YELLOW}No iOS device backup directory found${RESET}"
+  ios_backups_cleaned=0
+fi
+echo ""
+
+# Step 3: Clean Xcode DerivedData and device support
+fancy_header " Cleaning Xcode Data "
+print_info "Removing Xcode DerivedData and DeviceSupport to free up space"
+if [[ -d "$XCODE_DERIVED_DATA" ]]; then
+    derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
+    if [[ -n "$(ls -A "$XCODE_DERIVED_DATA")" ]]; then
+        sudo rm -rf "$XCODE_DERIVED_DATA"/*
+        echo "${GREEN}Xcode DerivedData cleaned ($derived_count items).${RESET}"
+    else
+        echo "${YELLOW}No Xcode DerivedData found${RESET}"
+    fi
+else
+    echo "${YELLOW}No Xcode DerivedData found${RESET}"
+fi
+if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
+    device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
+    sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
+    echo "${GREEN}Xcode DeviceSupport cleaned ($device_support_count items)${RESET}"
+else
+    echo "${YELLOW}No Xcode DeviceSupport found${RESET}"
+fi
+echo ""
+
+# Step 4: Clean Docker system (if installed)
+fancy_header " Cleaning Docker System "
+print_info "Removing unused Docker images, containers, and volumes"
+if command -v docker >/dev/null 2>&1; then
+    docker system prune -af --volumes
+    echo "${GREEN}Docker system pruned${RESET}"
+    docker_cleaned=1
+else
+    echo "${YELLOW}Docker not installed, skipping Docker cleanup${RESET}"
+    docker_cleaned=0
+fi
+echo ""
+
+# Step 5: Clean old system logs older than 7 days
 fancy_header " Cleaning Logs "
 print_info "Cleaning logs older than 7 days to save disk space and improve performance"
 # Find old files and store in array
@@ -350,72 +416,69 @@ old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}"
 # Clean empty entries
 old_logs=(${old_logs:#""})  
 if (( ${#old_logs[@]} == 0 )); then
-  echo "${YELLOW}LOG is clean — no files to clean${RESET}"
-  logs_cleaned=0
+    echo "${YELLOW}LOG is clean — no files to clean${RESET}"
+    logs_cleaned=0
 else
-  for file in "${old_logs[@]}"; do
-    echo "${BLUE}Cleaning LOG File: $file${RESET}"
-    sudo rm -f "$file"
-  done
-  echo "${GREEN}${#old_logs[@]} old LOG files cleaned${RESET}"
-  logs_cleaned=${#old_logs[@]}
+    for file in "${old_logs[@]}"; do
+        echo "${BLUE}Cleaning LOG File: $file${RESET}"
+        sudo rm -f "$file"
+    done
+    echo "${GREEN}${#old_logs[@]} old LOG files cleaned${RESET}"
+    logs_cleaned=${#old_logs[@]}
 fi
 echo ""
 
-# Step 3: Empty Trash/Bin
+# Step 6: Empty Trash/Bin
 fancy_header " Cleaning Trash "
 print_info "Clearing Trash frees disk space and prevents clutter, vital for active users"
-
 # Empty User Trash
 trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null)}")
 trash_files=(${trash_files:#""}) 
 if (( ${#trash_files[@]} == 0 )); then
-  echo "${YELLOW}User Trash is clean — no files to clean${RESET}"
+    echo "${YELLOW}User Trash is clean — no files to clean${RESET}"
 else
-  for file in "${trash_files[@]}"; do
-    echo "${BLUE}Cleaning File: $file${RESET}"
-  done
-  osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
-  echo "${GREEN}${#trash_files[@]} files cleaned${RESET}"  
-  echo "${GREEN}Trash for current user has been cleaned${RESET}"
-  trash_cleaned=${#trash_files[@]}
+    for file in "${trash_files[@]}"; do
+        echo "${BLUE}Cleaning File: $file${RESET}"
+    done
+    osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
+    echo "${GREEN}${#trash_files[@]} files cleaned${RESET}"  
+    echo "${GREEN}Trash for current user has been cleaned${RESET}"
+    trash_cleaned=${#trash_files[@]}
 fi
-
 # Empty System Trash
 system_trash="/private/var/root/.Trash"
 if [[ -d "$system_trash" ]]; then
-  if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
-    echo "${YELLOW}System Trash is already clean${RESET}"
-  else
-    sudo rm -rf "$system_trash"/* 2>/dev/null
-    echo "${GREEN}Trash for system has been cleaned${RESET}"
-    trash_cleaned=1
-  fi
+    if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
+        echo "${YELLOW}System Trash is already clean${RESET}"
+    else
+        sudo rm -rf "$system_trash"/* 2>/dev/null
+        echo "${GREEN}Trash for system has been cleaned${RESET}"
+        trash_cleaned=1
+    fi
 else
-  echo "${YELLOW}System Trash folder not accessible${RESET}"
+    echo "${YELLOW}System Trash folder not accessible${RESET}"
 fi
-
 # Trash on all mounted volumes
 found_volume=0
 for volume in /Volumes/*; do
-  trashes_dir="$volume/.Trashes"
-  if [[ -d "$trashes_dir" ]]; then
-    found_volume=1
-    if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
-      echo "${YELLOW}Trash already clean on volume: $volume${RESET}"
-    else
-      sudo rm -rf "$trashes_dir"/* 2>/dev/null
-      echo "${GREEN}Cleaned trash on volume: $volume${RESET}"
-      trash_cleaned=1
+    trashes_dir="$volume/.Trashes"
+    if [[ -d "$trashes_dir" ]]; then
+        found_volume=1
+        if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
+            echo "${YELLOW}Trash already clean on volume: $volume${RESET}"
+        else
+            sudo rm -rf "$trashes_dir"/* 2>/dev/null
+            echo "${GREEN}Cleaned trash on volume: $volume${RESET}"
+            trash_cleaned=1
+        fi
     fi
-  fi
 done
 if [[ $found_volume -eq 0 ]]; then
-  echo "${YELLOW}No Mounted Volume found${RESET}"
+    echo "${YELLOW}No Mounted Volume found${RESET}"
 fi
 echo ""
 
-# Step 4: Clean temporary files older than 3 days
+# Step 7: Clean temporary files older than 3 days
 fancy_header " Cleaning Files "
 print_info "Temporary files slow systems, cleaning unused files (3+ days) improves performance"
 # Clean various temp directories
@@ -424,53 +487,53 @@ clean_temp_files "/var/tmp" "variable temporary directory"
 clean_temp_files "$HOME/Library/Caches/TemporaryItems" "user temporary items"
 echo ""
 
-# Step 5: Clean old Downloads
+# Step 8: Clean old Downloads
 fancy_header " Cleaning Downloads "
 print_info "The Downloads folder fills with old files, regularly deleting files frees space"
 old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
 # Clean empty entries
 old_files=(${old_files:#""}) 
 if (( ${#old_files[@]} == 0 )); then
-  echo "${YELLOW}Downloads is clean — no files to clean${RESET}"  
-  downloads_cleaned=0
+    echo "${YELLOW}Downloads is clean — no files to clean${RESET}"  
+    downloads_cleaned=0
 else
-  for file in "${old_files[@]}"; do
-    echo "${BLUE}Cleaning File: $file${RESET}"
-    rm -f "$file"
-  done
+    for file in "${old_files[@]}"; do
+        echo "${BLUE}Cleaning File: $file${RESET}"
+        rm -f "$file"
+    done
     echo "${GREEN}${#old_files[@]} files cleaned${RESET}"
     downloads_cleaned=${#old_files[@]}
 fi
 echo ""
 
-# Step 6: Homebrew cleanup
+# Step 9: Homebrew cleanup
 fancy_header " Cleaning Homebrew "
 print_info "Homebrew is a popular macOS package manager for installing and managing software"
 if command -v brew >/dev/null 2>&1; then
-  echo "${BLUE}Running: brew config${RESET}"
-  brew config
-  echo "${BLUE}Running: brew info${RESET}"
-  brew info
-  echo "${BLUE}Running: brew cleanup -s${RESET}"
-  brew cleanup -s
-  echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
-  homebrew_cleaned=1
+    echo "${BLUE}Running: brew config${RESET}"
+    brew config
+    echo "${BLUE}Running: brew info${RESET}"
+    brew info
+    echo "${BLUE}Running: brew cleanup -s${RESET}"
+    brew cleanup -s
+    echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
+    homebrew_cleaned=1
 else
-  echo "${YELLOW}Homebrew not installed, skipping process${RESET}"
-  homebrew_cleaned=0
+    echo "${YELLOW}Homebrew not installed, skipping process${RESET}"
+    homebrew_cleaned=0
 fi
 echo ""
 
-# Step 7: Purge inactive memory (if possible)
+# Step 10: Purge inactive memory (if possible)
 fancy_header " Cleaning Memory "
 print_info "Freeing inactive memory to boost performance without closing any running applications"
 if command -v purge >/dev/null 2>&1; then
     sudo purge
     sleep 2
-    echo "${GREEN}Inactive memory purged.${RESET}"
+    echo "${GREEN}Inactive memory purged${RESET}"
     memory_purged=1
 else
-    echo "${RED}'purge' command not available. Skipping process.${RESET}"
+    echo "${RED}'purge' command not available, skipping process${RESET}"
     memory_purged=0
 fi
 echo ""
@@ -478,13 +541,13 @@ echo ""
 # Print the cleanup summary
 print_summary
 
-# Flush filesystem buffers to ensure all changes are written to disk.
+# Flush filesystem buffers to ensure all changes are written to disk
 sync
 
-# Close file descriptors (for tee subshells).
+# Close file descriptors (for tee subshells)
 exec 1>&- 2>&-
 
-# Open the log file in Console (if available).
+# Open the log file in Console (if available)
 if command -v open >/dev/null 2>&1; then
     open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
 fi
