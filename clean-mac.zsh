@@ -230,16 +230,16 @@ print_summary() {
     echo "  Uptime  $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
     echo ""
     echo "Cleanup Performed:"
-    [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  • No junk found in user cache,nothing to clean up ${RESET}"
-    [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  • No outdated logs detected, all set ${RESET}"
-    [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  • No files found in Trash, it's squeaky clean ${RESET}"
-    [[ $downloads_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || echo "${YELLOW}  • Downloads folder looks tidy, no old files to delete ${RESET}"
-    [[ $homebrew_cleaned == 1 ]] && echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || echo "${YELLOW}  • Homebrew is already clean, no leftover files found ${RESET}"
-    [[ $memory_purged == 1 ]] && echo "${GREEN}  ✔ Inactive memory purged ${RESET}" || echo "${YELLOW}  • Memory usage is already clean and efficient ${RESET}"
-    [[ ${ios_backups_cleaned:-0} -gt 0 ]] && echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || echo "${YELLOW}  • No iOS backups found to clean ${RESET}"
-    [[ ${derived_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || echo "${YELLOW}  • No Xcode DerivedData found to clean ${RESET}"
-    [[ ${device_support_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || echo "${YELLOW}  • No Xcode DeviceSupport found to clean ${RESET}"
-    [[ ${docker_cleaned:-0} -eq 1 ]] && echo "${GREEN}  ✔ Docker system pruned ${RESET}" || echo "${YELLOW}  • Docker doesn’t seem to be installed on your system ${RESET}"
+    [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  ● No junk found in user cache,nothing to clean up ${RESET}"
+    [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
+    [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
+    [[ $downloads_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
+    [[ $homebrew_cleaned == 1 ]] && echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || echo "${YELLOW}  ● Homebrew is already clean, no leftover files found ${RESET}"
+    [[ $memory_purged == 1 ]] && echo "${GREEN}  ✔ Inactive memory purged ${RESET}" || echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
+    [[ ${ios_backups_cleaned:-0} -gt 0 ]] && echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || echo "${YELLOW}  ● No iOS backups found to clean ${RESET}"
+    [[ ${derived_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || echo "${YELLOW}  ● No Xcode DerivedData found to clean ${RESET}"
+    [[ ${device_support_count:-0} -gt 0 ]] && echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
+    [[ ${docker_cleaned:-0} -eq 1 ]] && echo "${GREEN}  ✔ Docker system pruned ${RESET}" || echo "${YELLOW}  ● Docker doesn’t seem to be installed on your system ${RESET}"
     # Measure free disk space after cleanup
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
@@ -529,7 +529,7 @@ fancy_header " Cleaning Memory "
 print_info "Freeing inactive memory to boost performance without closing any running applications"
 if command -v purge >/dev/null 2>&1; then
     sudo purge
-    sleep 2
+    sleep 1
     echo "${GREEN}Inactive memory purged${RESET}"
     memory_purged=1
 else
