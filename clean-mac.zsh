@@ -12,11 +12,11 @@
 
 # ───── Colors Variables ─────
 # Use standard, high-contrast ANSI codes for best visibility on both dark and light backgrounds
-GREEN=$'\033[1;32m'    # Bright Green - Success
-YELLOW=$'\033[1;33m'   # Bright Yellow - Warning/Skip
-RED=$'\033[1;31m'      # Bright Red - Error/Failure
-BLUE=$'\033[1;34m'     # Bright Blue - Info/Action
-CYAN=$'\033[1;36m'     # Bright Cyan - General Info
+GREEN=$'\033[0;32m'    # Bright Green - Success
+YELLOW=$'\033[0;33m'   # Bright Yellow - Warning/Skip
+RED=$'\033[0;31m'      # Bright Red - Error/Failure
+BLUE=$'\033[0;97m'     # Bright Blue - Info/Action
+CYAN=$'\033[0;36m'     # Bright Cyan - General Info
 RESET=$'\033[0m'       # Reset all attributes
 
 # ───── Global Variables ─────
@@ -220,16 +220,18 @@ check_mac_dependencies() {
 
 # Function to print summary
 print_summary() {
-    print_box " Cleanup Summary "
+    print_box " Summary "
     echo ""
-    echo "System:"
+    echo "${CYAN}System${RESET}${GREEN}"
+    echo ""
     echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
     echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
     echo "  RAM     $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
     echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
     echo "  Uptime  $(uptime | awk -F'( |,|:)+' '{if ($7=="min") print $6" min"; else if($7=="hrs") print $6" hrs, "$8" min"; else print $6" hrs"}')"
+    echo "${RESET}"
+    echo "${CYAN}Cleanup Performed${RESET}"
     echo ""
-    echo "Cleanup Performed:"
     [[ $user_caches_cleaned -gt 0 ]] && echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || echo "${YELLOW}  ● No junk found in user cache,nothing to clean up ${RESET}"
     [[ $logs_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
     [[ $trash_cleaned -gt 0 ]] && echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
@@ -250,7 +252,8 @@ print_summary() {
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
     echo ""
-    echo "Results:"
+    echo "${CYAN}Results${RESET}"
+    echo ""
     # Print memory freed
     if (( MEM_FREED_MB > 0 )); then
        echo "${GREEN}  RAM freed: $MEM_FREED_MB Megabyte(MB)${RESET}"
@@ -264,15 +267,20 @@ print_summary() {
     else
         echo "${YELLOW}  Disk space unchanged - possibly already optimized${RESET}"
     fi
-    echo "  Log file: $LOGFILE"
+    echo "${GREEN}  Log file: $LOGFILE"
     echo "  Script version: $VER"
-    echo "  Author: ${AUTHOR} © $(date +%Y)"
-    echo ""
-    fancy_divider 40 "="
+    echo "${RESET}"
+    fancy_header "${AUTHOR} © $(date +%Y)"
     echo ""
 }
 
 # ───── Script Starts ─────
+
+# Ensure the script is run with zsh
+if [[ -z "$ZSH_VERSION" ]]; then
+    echo "❌ This script requires zsh to run. Please run it with zsh." >&2
+    exit 1
+fi
 
 # Ensure the OS is macOS
 if [[ "$(uname)" != "Darwin" ]]; then
@@ -280,20 +288,34 @@ if [[ "$(uname)" != "Darwin" ]]; then
     exit 1
 fi
 
-setopt local_options nullglob extended_glob
-clear
+# Optimize globbing and file matching for safety and flexibility
+setopt nullglob extended_glob
 
 # Strip ANSI color codes and save clean output to log, while keeping colored output in terminal
 # Need to install brew install coreutils
 exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
      2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
 
-# System Details
+# Print the initial box with script info
+clear
 echo ""
 print_box "macOS Cleanup"
 echo ""
-echo "${CYAN}$DATE${RESET}"
+echo "clean-mac is a free, all-in-one script for macOS that quickly cleans caches, logs,"
+echo "temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep"
+echo "your Mac running fast with just one command"
 echo ""
+echo "$DATE"
+echo "Version $VER"
+echo "Author  $AUTHOR"
+echo ""
+echo "${CYAN}Starting Mac cleanup${RESET}"
+echo "${CYAN}You might be asked for your password to perform certain tasks${RESET}"
+echo "${CYAN}For the smoothest experience, we recommend running this script directly in the macOS Terminall${RESET}"
+echo "${RED}To exit the script at any time, press Control + C${RESET}"
+echo ""
+
+# Print system details
 fancy_header " System Details "
 echo "${GREEN}"
 echo "Mac Model   : $MODEL"
@@ -310,11 +332,8 @@ echo "IP          : $IP"
 echo "MAC         : $MAC"
 echo "SSID        : $SSID"
 echo "${RESET}"
-echo "${CYAN}Starting cleanup for your Mac System${RESET}"
-echo "${CYAN}You may be prompted for password to authorize system operations${RESET}"
-echo "${CYAN}For best results, run the script directly in the macOS Terminal${RESET}"
-echo ""
 
+# Check for required dependencies
 check_mac_dependencies
 
 # Ask for sudo once at the start
