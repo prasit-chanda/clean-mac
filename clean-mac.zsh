@@ -10,7 +10,7 @@
 # Last Updated: 2025-06-27
 # ------------------------------------------------------------------------------
 
-# ───── Colors Variables ─────
+# ───── Static Colors Variables ─────
 # Use standard, high-contrast ANSI codes for best visibility on both dark and light backgrounds
 BLUE=$'\e[94m'     # Bright Blue - Info/Action
 CYAN=$'\e[36m'     # Bright Cyan - General Info
@@ -108,7 +108,6 @@ LF="clean-mac-${TS}.log" # Log file info
 TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
 WD=$(pwd) # Working directory info
 LOGFILE="${WD}/${LF}" # Log file path
-
 MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB" # RAM Info
 MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//') # Memory usage before cleanup
 MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 )) # Memory before in MB
@@ -120,12 +119,10 @@ SCRIPT_START_TIME=$(date +%s) # Initialize cleanup counters
 SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Serial Number
 UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
 USER_EXITED=0 # Flag to indicate if user exited early
-
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
 VER="1.5.0-$(date +"%Y%m%d")-XQLSQ" # Version info
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
-
 # List of protected cache folders (these will not be deleted)
 protected_caches=(
   "CloudKit"
@@ -406,12 +403,11 @@ print_clean_summary() {
       echo "${YELLOW}  ● Docker doesn’t seem to be installed on your system ${RESET}"
 
     # Results section
+    # Measure memory and disk space freed
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
-
     MEM_AFTER=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
     MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
-
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
 
@@ -426,6 +422,7 @@ print_clean_summary() {
       echo "${YELLOW}  No additional RAM freed, possibly already optimized${RESET}"
     fi
 
+    # Print disk space freed
     if (( space_freed > 0 )); then
       echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}"
     elif (( space_freed < 0 )); then
@@ -444,6 +441,7 @@ print_clean_summary() {
     fi
   fi
 
+  # Print Footer Contents
   echo ""
   echo "Log File $LOGFILE"
   echo "Script Version $VER"
@@ -516,12 +514,13 @@ fi
 # Optimize globbing and file matching for safety and flexibility
 setopt nullglob extended_glob
 
+# Use stdbuf to ensure output is line-buffered for real-time logging
 # Strip ANSI color codes and save clean output to log, while keeping colored output in terminal
-# Need to install brew install coreutils
+# Need to install <brew install coreutils>
 exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
      2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
 
-# Print the initial box with script info
+# Print the script Title in a fancy box with Details
 fancy_title_box "$SCRIPT_BOX_TITLE"
 echo "${CYAN}"
 echo "$SCRIPT_DESCRIPTION"
@@ -537,7 +536,7 @@ echo "${YELLOW}$SCRIPT_INTERNET_MSG${RESET}"
 echo "${RED}$SCRIPT_EXIT_MSG${RESET}"
 echo ""
 
-# Print system details
+# Print System Details
 fancy_text_header "$SYSTEM_DETAILS_HEADER"
 echo "${GREEN}"
 echo "$MODEL_LABEL $MODEL"
@@ -569,7 +568,7 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # Measure free disk space before cleanup
 space_before=$(get_free_space)
 
-# Step 1: Clear user caches
+# Step 1: Clear User Caches
 fancy_text_header "$CLEANING_CACHES_HEADER"
 print_hints "$CLEANING_CACHES_HINT"
 counter=0
@@ -592,7 +591,7 @@ else
 fi
 echo ""
 
-# Step 2: Clean iOS device backups
+# Step 2: Clean iOS device Backups
 fancy_text_header "$CLEANING_IOS_HEADER"
 print_hints "$CLEANING_IOS_HINT"
 if [[ -d "$IOS_BACKUP_DIR" ]]; then
@@ -615,6 +614,7 @@ echo ""
 # Step 3: Clean Xcode DerivedData and device support
 fancy_text_header "$CLEANING_XCODE_HEADER"
 print_hints "$CLEANING_XCODE_HINT"
+# Check for Xcode DerivedData
 if [[ -d "$XCODE_DERIVED_DATA" ]]; then
   derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   if [[ -n "$(ls -A "$XCODE_DERIVED_DATA")" ]]; then
@@ -626,7 +626,7 @@ if [[ -d "$XCODE_DERIVED_DATA" ]]; then
 else
   echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
 fi
-
+# Check for Xcode DeviceSupport
 if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
   device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
@@ -649,7 +649,7 @@ else
 fi
 echo ""
 
-# Step 5: Clean old system logs older than 7 days
+# Step 5: Clean old System Logs older than 7 days
 fancy_text_header "$CLEANING_LOGS_HEADER"
 print_hints "$CLEANING_LOGS_HINT"
 old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}")
@@ -714,7 +714,7 @@ if [[ $found_volume -eq 0 ]]; then
 fi
 echo ""
 
-# Step 7: Clean temporary files older than 3 days
+# Step 7: Clean Temporary Files older than 3 days
 fancy_text_header "$CLEANING_FILES_HEADER"
 print_hints "$CLEANING_FILES_HINT"
 clean_temp_files "/tmp" "system temporary directory"
@@ -740,7 +740,7 @@ else
 fi
 echo ""
 
-# Step 9: Homebrew cleanup
+# Step 9: Homebrew Cleanup
 fancy_text_header "$CLEANING_HOMEBREW_HEADER"
 print_hints "$CLEANING_HOMEBREW_HINT"
 if command -v brew >/dev/null 2>&1; then
