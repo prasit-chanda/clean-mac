@@ -626,6 +626,7 @@ if [[ -d "$XCODE_DERIVED_DATA" ]]; then
 else
   echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
 fi
+
 if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
   device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
