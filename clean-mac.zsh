@@ -202,11 +202,11 @@ check_dependencies() {
     echo "${GREEN}Dependencies are in place${RESET}"
   else
     echo "${RED}Dependencies did not comply${RESET}"
-    echo "❌ ${RED}Terminating script execution${RESET}"
+    #echo "❌ ${RED}Terminating script execution${RESET}"
     echo ""
-    USER_EXITED=1 # Set the flag so summary knows user exited
-    print_clean_summary
-    exit 0
+    #USER_EXITED=1 # Set the flag so summary knows user exited
+    #print_clean_summary
+    #exit 0
   fi
   echo ""
 }
