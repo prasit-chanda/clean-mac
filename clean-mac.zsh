@@ -103,7 +103,7 @@ AUTHOR="Prasit Chanda" # Author info (dynamic)
 CPU=$(sysctl -n machdep.cpu.brand_string) # CPU Info
 DATE=$(date "+%a, %d %b %Y %H:%M:%S %p") # Date info
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs) # Main disk
-DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | head -n 1 | xargs) # Disk size
+DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs) # Disk size
 IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null) # IP address
 LF="clean-mac-${TS}.log" # Log file info
 TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
@@ -447,7 +447,7 @@ print_clean_summary() {
   echo "Log File $LOGFILE"
   echo "Script Version $VER"
   echo ""
-  fancy_text_header "${AUTHOR} © $(date +%Y)"
+  fancy_text_header " ${AUTHOR} © $(date +%Y) "
   echo ""
 
   # Flush filesystem buffers to ensure all changes are written to disk
