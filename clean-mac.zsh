@@ -101,12 +101,13 @@ ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}') # Fi
 MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}') # MAC address
 AUTHOR="Prasit Chanda" # Author info (dynamic)
 CPU=$(sysctl -n machdep.cpu.brand_string) # CPU Info
-DATE=$(date "+%a, %d %b %Y %H:%M:%S %p") # Date info
+DNS_SERVER="1.1.1.1"
+DATE=$(date "+%a, %d %b %Y %I:%M:%S %p") # Date info
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs) # Main disk
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs) # Disk size
 IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null) # IP address
-LF="clean-mac-${TS}.log" # Log file info
 TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
+LF="clean-mac-${TS}.log" # Log file info
 WD=$(pwd) # Working directory info
 LOGFILE="${WD}/${LF}" # Log file path
 MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB" # RAM Info
@@ -121,7 +122,7 @@ SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Ser
 UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
 USER_EXITED=0 # Flag to indicate if user exited early
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
-VER="1.5.0-$(date +"%Y%m%d")-XQLSQ" # Version info
+VER="1.6.3-20250628-7UKS4" # Version info
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
 # List of protected cache folders (these will not be deleted)
@@ -209,9 +210,8 @@ check_dependencies() {
 
 # Function to check if the user has an internet connection
 check_internet() {
-  local host="8.8.8.8"  # Google DNS
   local timeout=2
-  if ping -c 1 -W $timeout "$host" >/dev/null 2>&1; then
+  if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
     echo "${GREEN}  ✔ Internet connection is active and stable${RESET}"
     return 0
   else
@@ -273,16 +273,19 @@ fancy_text_header() {
 }
 
 # Function to generate a random 5-character string (A-Z, 1-9)
-generate_version_build() {
-  local chars=( {A..Z} {1..9} )
+generate_random_string() {
+  local chars=( {A..Z} {0..9})
   local num_chars=${#chars[@]}
   if (( num_chars == 0 )); then
     # echo "❌ Error: character array is empty!"
     return 1
   fi
   local str=""
-  for _ in {1..5}; do
+  for i in {1..25}; do
     str+="${chars[RANDOM % num_chars]}"
+    if (( i % 5 == 0 && i != 25 )); then
+      str+="-"
+    fi
   done
   echo "$str"
 }
@@ -379,7 +382,7 @@ print_clean_summary() {
     echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
     echo "  Uptime  $(get_uptime)"
     echo "${RESET}"
-    echo "${CYAN}Here's what changed${RESET}"
+    echo "${CYAN}What Changed${RESET}"
     echo ""
     check_internet
     [[ $user_caches_cleaned -gt 0 ]] && \
@@ -537,6 +540,7 @@ echo "${CYAN}"
 echo "$SCRIPT_DESCRIPTION"
 echo "${RESET}${GREEN}"
 echo "$DATE"
+echo "SCAN ID $(generate_random_string)"
 echo "Version $VER"
 echo "Author  $AUTHOR"
 echo "${RESET}"
@@ -755,7 +759,7 @@ echo ""
 fancy_text_header "$CLEANING_HOMEBREW_HEADER"
 print_hints "$CLEANING_HOMEBREW_HINT"
 # Check for stable internet connectivity before running Homebrew cleanup
-if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+if ping -c 1 -W 2 $DNS_SERVER >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
     print_brew_info
     echo "${BLUE}Cleaning Homebrew${RESET}"
