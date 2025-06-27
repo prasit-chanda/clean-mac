@@ -27,10 +27,10 @@ temp files, old downloads, and Homebrew leftovers—helping you reclaim space an
 your Mac running fast with just one command"
 SCRIPT_START_MSG="Starting clean-mac"
 SCRIPT_SUDO_MSG=" ● You might be asked for your password to perform certain tasks"
-SCRIPT_TERMINAL_MSG=" ● For the smoothest experience, we recommend running this script directly in the macOS Terminal"
+SCRIPT_TERMINAL_MSG=" ● Run in macOS Terminal for best results"
 SCRIPT_INTERNET_MSG=" ● You're going to need a stable internet connection for smooth execution"
 SCRIPT_EXIT_MSG=" ● You can exit anytime by pressing control (⌃) + c"
-SYSTEM_DETAILS_HEADER=" System Details "
+SYSTEM_DETAILS_HEADER="System"
 MODEL_LABEL="Mac Model   :"
 CPU_LABEL="CPU         :"
 RAM_LABEL="RAM         :"
@@ -43,26 +43,26 @@ UPTIME_LABEL="Uptime      :"
 INTERFACE_LABEL="Interface   :"
 IP_LABEL="IP          :"
 MAC_LABEL="MAC         :"
-DEPENDENCIES_HEADER="Checking Dependencies"
-CLEANING_CACHES_HEADER=" Cleaning Caches "
+DEPENDENCIES_HEADER="Dependencies"
+CLEANING_CACHES_HEADER="Caches "
 CLEANING_CACHES_HINT="Clearing user caches frees space, removes junk, and improves performance and stability"
-CLEANING_IOS_HEADER=" Cleaning iOS Device Backups "
+CLEANING_IOS_HEADER="Backups"
 CLEANING_IOS_HINT="Removing old iOS device backups from MobileSync and Backup"
-CLEANING_XCODE_HEADER=" Cleaning Xcode Data "
+CLEANING_XCODE_HEADER="Xcode"
 CLEANING_XCODE_HINT="Removing Xcode DerivedData and DeviceSupport to free up space"
-CLEANING_DOCKER_HEADER=" Cleaning Docker System "
+CLEANING_DOCKER_HEADER="Docker"
 CLEANING_DOCKER_HINT="Removing unused Docker images, containers, and volumes"
-CLEANING_LOGS_HEADER=" Cleaning Logs "
+CLEANING_LOGS_HEADER="Logs"
 CLEANING_LOGS_HINT="Cleaning logs older than 7 days to save disk space and improve performance"
-CLEANING_TRASH_HEADER=" Cleaning Trash "
+CLEANING_TRASH_HEADER="Trash"
 CLEANING_TRASH_HINT="Clearing Trash frees disk space and prevents clutter, vital for active users"
-CLEANING_FILES_HEADER=" Cleaning Files "
+CLEANING_FILES_HEADER="Files"
 CLEANING_FILES_HINT="Temporary files slow systems, cleaning unused files (3+ days) improves performance"
-CLEANING_DOWNLOADS_HEADER=" Cleaning Downloads "
+CLEANING_DOWNLOADS_HEADER="Downloads"
 CLEANING_DOWNLOADS_HINT="The Downloads folder fills with old files, regularly deleting files frees space"
-CLEANING_HOMEBREW_HEADER=" Cleaning Homebrew "
+CLEANING_HOMEBREW_HEADER="Homebrew"
 CLEANING_HOMEBREW_HINT="Homebrew is a popular macOS package manager for installing and managing software"
-CLEANING_MEMORY_HEADER=" Cleaning Memory "
+CLEANING_MEMORY_HEADER="Memory"
 CLEANING_MEMORY_HINT="Freeing inactive memory to boost performance without closing any running applications"
 NO_FILES_TO_CLEAN_MSG="no files to clean"
 USER_CACHE_CLEANED_MSG="User Cache cleanup completed"
@@ -92,6 +92,7 @@ DOWNLOADS_CLEAN_MSG="Downloads is clean — no files to clean"
 DOWNLOADS_FILE_CLEANED_MSG="files cleaned"
 HOMEBREW_CLEANED_MSG="Homebrew cleanup complete"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew not installed, skipping process"
+HOMEBREW_CLEANUP_SKIPPED_MSG="Homebrew cleanup skipped due to connection issues"
 PURGE_CLEANED_MSG="Cleared unused memory"
 PURGE_NOT_AVAILABLE_MSG="'purge' command not available, skipping process"
 
@@ -173,7 +174,7 @@ clean_temp_files() {
 # Function to check execution dependencies (Homebrew, coreutils, osascript)
 check_dependencies() {
   local dependencies_status=0
-  fancy_text_header "Checking Dependencies"
+  fancy_text_header $DEPENDENCIES_HEADER
   echo ""
   # Check Homebrew
   if ! command -v brew >/dev/null 2>&1; then
@@ -220,7 +221,7 @@ fancy_line_divider() {
   while [[ ${(L)#line} -lt $width ]]; do
     line+="$char"
   done
-  print -Pn "%F{blue}"
+  #print -Pn "%F{blue}"
   print -r -- "$line"
 }
 
@@ -235,7 +236,7 @@ fancy_title_box() {
   for line in "${lines[@]}"; do
     (( ${#line} > max_length )) && max_length=${#line}
   done
-  print -Pn "%F{blue}"
+  #print -Pn "%F{blue}"
   local box_width=$((max_length + padding * 2))
   local border_top="╔$(printf '═%.0s' $(seq 1 $box_width))╗"
   local border_bottom="╚$(printf '═%.0s' $(seq 1 $box_width))╝"
@@ -253,9 +254,9 @@ fancy_title_box() {
 # Custom Header for section titles
 fancy_text_header() {
   local label="$1"
-  local total_width=50
+  local total_width=25
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
-  print -Pn "%F{blue}"
+  #print -Pn "%F{blue}"
   # Print a centered header with '=' padding
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
@@ -359,9 +360,9 @@ print_brew_info() {
 print_clean_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
-    fancy_title_box " Summary "
+    fancy_title_box "Clean Recap"
     echo ""
-    echo "${CYAN}System${RESET}${GREEN}"
+    echo "${CYAN}System Snapshot${RESET}${GREEN}"
     echo ""
     echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
     echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
@@ -369,7 +370,7 @@ print_clean_summary() {
     echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
     echo "  Uptime  $(get_uptime)"
     echo "${RESET}"
-    echo "${CYAN}Cleanup Performed${RESET}"
+    echo "${CYAN}Here's what changed${RESET}"
     echo ""
     [[ $user_caches_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
@@ -385,7 +386,7 @@ print_clean_summary() {
       echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
     [[ $homebrew_cleaned == 1 ]] && \
       echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || \
-      echo "${YELLOW}  ● Homebrew is already clean, no leftover files found ${RESET}"
+      echo "${RED}  ❌ Homebrew not cleaned due to no install or no internet ${RESET}"
     [[ $memory_purged == 1 ]] && \
       echo "${GREEN}  ✔ Cleared unused memory ${RESET}" || \
       echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
@@ -400,7 +401,7 @@ print_clean_summary() {
       echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
     [[ ${docker_cleaned:-0} -eq 1 ]] && \
       echo "${GREEN}  ✔ Docker system pruned ${RESET}" || \
-      echo "${YELLOW}  ● Docker doesn’t seem to be installed on your system ${RESET}"
+      echo "${RED}  ❌ Docker doesn’t seem to be installed on your system ${RESET}"
 
     # Results section
     # Measure memory and disk space freed
@@ -412,7 +413,7 @@ print_clean_summary() {
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
 
     echo ""
-    echo "${CYAN}Results${RESET}"
+    echo "${CYAN}Cleanup Outcome${RESET}"
     echo ""
 
     # Print memory freed
@@ -743,14 +744,20 @@ echo ""
 # Step 9: Homebrew Cleanup
 fancy_text_header "$CLEANING_HOMEBREW_HEADER"
 print_hints "$CLEANING_HOMEBREW_HINT"
-if command -v brew >/dev/null 2>&1; then
-  print_brew_info
-  echo "${BLUE}Cleaning Homebrew${RESET}"
-  brew cleanup -s
-  echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
-  homebrew_cleaned=1
+# Check for stable internet connectivity before running Homebrew cleanup
+if ping -c 1 -W 2 8.8.8.8 >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    print_brew_info
+    echo "${BLUE}Cleaning Homebrew${RESET}"
+    brew cleanup -s
+    echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
+    homebrew_cleaned=1
+  else
+    echo "${YELLOW}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
+    homebrew_cleaned=0
+  fi
 else
-  echo "${YELLOW}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
+  echo "${YELLOW}$HOMEBREW_CLEANUP_SKIPPED_MSG${RESET}"
   homebrew_cleaned=0
 fi
 echo ""
