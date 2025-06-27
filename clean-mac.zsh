@@ -202,13 +202,22 @@ check_dependencies() {
     echo "${GREEN}Dependencies are in place${RESET}"
   else
     echo "${RED}Dependencies did not comply${RESET}"
-    #echo "❌ ${RED}Terminating script execution${RESET}"
     echo ""
-    #USER_EXITED=1 # Set the flag so summary knows user exited
-    #print_clean_summary
-    #exit 0
   fi
   echo ""
+}
+
+# Function to check if the user has an internet connection
+check_internet() {
+  local host="8.8.8.8"  # Google DNS
+  local timeout=2
+  if ping -c 1 -W $timeout "$host" >/dev/null 2>&1; then
+    echo "${GREEN}  ✔ Internet connection is active and stable${RESET}"
+    return 0
+  else
+    echo "${RED}  ❌ You're offline or the connection is unstable${RESET}"
+    return 1
+  fi
 }
 
 # Custom Divider for section separation
@@ -372,6 +381,7 @@ print_clean_summary() {
     echo "${RESET}"
     echo "${CYAN}Here's what changed${RESET}"
     echo ""
+    check_internet
     [[ $user_caches_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
       echo "${YELLOW}  ● No junk found in user cache, nothing to clean up ${RESET}"
