@@ -4,7 +4,7 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.4.0-20250627CVOP
+# Version: 1.5.0-20250627WQRU
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
 # Last Updated: 2025-06-27
@@ -12,53 +12,46 @@
 
 # ───── Colors Variables ─────
 # Use standard, high-contrast ANSI codes for best visibility on both dark and light backgrounds
-WHITE='\e[97m'     # Bright White - General Info
-GREEN=$'\e[32m'    # Bright Green - Success
-YELLOW=$'\e[33m'   # Bright Yellow - Warning/Skip
-RED=$'\e[31m'      # Bright Red - Error/Failure
 BLUE=$'\e[94m'     # Bright Blue - Info/Action
 CYAN=$'\e[36m'     # Bright Cyan - General Info
+GREEN=$'\e[32m'    # Bright Green - Success
+RED=$'\e[31m'      # Bright Red - Error/Failure
 RESET=$'\e[0m'     # Reset all attributes
+WHITE='\e[97m'     # Bright White - General Info
+YELLOW=$'\e[33m'   # Bright Yellow - Warning/Skip
 
 # ───── Global Variables ─────
-VER="1.4.0-20250627CVOP" # Version info
-DATE=$(date "+%a, %d %b %Y %H:%M:%S %p") # Date info
-TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
-LF="clean-mac-${TS}.log" # Log file info
-WD=$PWD # Working directory info
-LOGFILE="${WD}/${LF}" # Log file path
+ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}') # First active interface
+MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}') # MAC address
 AUTHOR="Prasit Chanda" # Author info (dynamic)
-OS_NAME=$(sw_vers -productName) # OS Name
-OS_VERSION=$(sw_vers -productVersion) # OS Version
-OS_BUILD=$(sw_vers -buildVersion) # OS Build
-MODEL=$(sysctl -n hw.model) # Hardware Model
 CPU=$(sysctl -n machdep.cpu.brand_string) # CPU Info
-MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB" # RAM Info
-SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Serial Number
-UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
+DATE=$(date "+%a, %d %b %Y %H:%M:%S %p") # Date info
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs) # Main disk
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | head -n 1 | xargs) # Disk size
-[[ -z "$DISK_SIZE" ]] && DISK_SIZE="Unknown" # Fallback if info not found
-ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}') # First active interface
 IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null) # IP address
-MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}') # MAC address
+LF="clean-mac-${TS}.log" # Log file info
+TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
+WD=$(pwd) # Working directory info
+LOGFILE="${WD}/${LF}" # Log file path
 
-# Get SSID if it's a Wi-Fi interface
-if [[ "$ACTIVE_IF" == en* ]]; then
-  SSID_INFO=$(networksetup -getairportnetwork "$ACTIVE_IF" 2>&1)
-  if [[ "$SSID_INFO" == *"You cannot"* || "$SSID_INFO" == *"not a Wi-Fi interface"* ]]; then
-    SSID="No Wi-Fi on $ACTIVE_IF"
-  else
-    SSID=$(echo "$SSID_INFO" | cut -d ':' -f2- | xargs)
-  fi
-else
-  SSID="(Not a network interface)"
-fi
-
+MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB" # RAM Info
 MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//') # Memory usage before cleanup
 MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 )) # Memory before in MB
+MODEL=$(sysctl -n hw.model) # Hardware Model
+OS_BUILD=$(sw_vers -buildVersion) # OS Build
+OS_NAME=$(sw_vers -productName) # OS Name
+OS_VERSION=$(sw_vers -productVersion) # OS Version
+SCRIPT_START_TIME=$(date +%s) # Initialize cleanup counters
+SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Serial Number
+UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
+USER_EXITED=0 # Flag to indicate if user exited early
 
-# List of protected cache folders
+IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
+VER="1.5.0-$(date +"%Y%m%d")WQRU" # Version info
+XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
+XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
+
+# List of protected cache folders (these will not be deleted)
 protected_caches=(
   "CloudKit"
   "com.apple.CloudPhotosConfiguration"
@@ -67,40 +60,86 @@ protected_caches=(
   "com.apple.Messages"
 )
 
-IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
-XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
-XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
-SCRIPT_START_TIME=$(date +%s) # Initialize cleanup counters
-
 # ───── Custom Methods ─────
 
-# Custom Text Box
-print_box() {
-  local content="$1"
-  local padding=2
-  local IFS=$'\n'
-  local lines=($content)
-  local max_length=0
-  # Find the longest line
-  for line in "${lines[@]}"; do
-    (( ${#line} > max_length )) && max_length=${#line}
-  done
-  print -Pn "%F{blue}"
-  local box_width=$((max_length + padding * 2))
-  local border_top="╔$(printf '═%.0s' $(seq 1 $box_width))╗"
-  local border_bottom="╚$(printf '═%.0s' $(seq 1 $box_width))╝"
-  echo "$border_top"
-  for line in "${lines[@]}"; do
-    local total_space=$((box_width - ${#line}))
-    local left_space=$((total_space / 2))
-    local right_space=$((total_space - left_space))
-    printf "%*s%s%*s\n" "$left_space" "" "$line" "$right_space" ""
-  done
-  echo "$border_bottom"
+# Function to ask user if they want to exit
+ask_user_consent() {
+  print -nP "%F{yellow}Do you want to continue running the script? (y/n)"
+  read answer
+  echo ""
+  case "$answer" in
+    [nN]* )
+      echo "❌ ${RED}Execution of clean-mac.zsh cancelled by $(whoami)${RESET}"
+      echo ""
+      USER_EXITED=1 # Set the flag so summary knows user exited
+      print_clean_summary # Print summary (will skip results if exited)
+      exit 0
+      ;;
+    * )
+      echo "${GREEN}$(whoami) gave the green light — launching clean-mac.zsh${RESET}"
+      echo ""
+      ;;
+  esac
 }
 
-# Custom Divider
-fancy_divider() {
+# Function to safely clean temp files in a directory older than 3 days
+clean_temp_files() {
+  local dir="$1"
+  local description="$2"
+  echo "${BLUE}Cleaning $description${RESET}"
+  # Count files before deletion
+  local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
+  if [[ $files_count -gt 0 ]]; then
+    # Use -delete for efficiency
+    sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
+    echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
+  else
+    echo "${YELLOW}No old files found in $description${RESET}"
+  fi
+}
+
+# Function to check execution dependencies (Homebrew, coreutils, osascript)
+check_dependencies() {
+  local dependencies_status=0
+  fancy_text_header "Checking Dependencies"
+  echo ""
+  # Check Homebrew
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "❌ ${RED}Homebrew is not installed${RESET}"
+    dependencies_status=1
+  else
+    echo "${GREEN}Homebrew is installed${RESET}"
+  fi
+  # Check coreutils via Homebrew
+  if ! brew list coreutils >/dev/null 2>&1; then
+    echo "❌ ${RED}coreutils is not installed via Homebrew${RESET}"
+    dependencies_status=1
+  else
+    echo "${GREEN}coreutils is installed${RESET}"
+  fi
+  # Check osascript (should always exist on macOS)
+  if ! command -v osascript >/dev/null 2>&1; then
+    echo "❌ ${RED}osascript is not available${RESET}"
+    dependencies_status=1
+  else
+    echo "${GREEN}osascript is available${RESET}"
+  fi
+  # Final decision
+  if [[ $dependencies_status -eq 0 ]]; then
+    echo "${GREEN}Dependencies are in place${RESET}"
+  else
+    echo "${RED}Dependencies did not comply${RESET}"
+    echo "❌ ${RED}Terminating script execution${RESET}"
+    echo ""
+    USER_EXITED=1 # Set the flag so summary knows user exited
+    print_clean_summary
+    exit 0
+  fi
+  echo ""
+}
+
+# Custom Divider for section separation
+fancy_line_divider() {
   # Total width of the divider
   local width=${1:-50}
   # Character or emoji to repeat
@@ -113,32 +152,59 @@ fancy_divider() {
   print -r -- "$line"
 }
 
-# Custom Header
-fancy_header() {
+# Custom Text Box for section titles or highlights
+fancy_title_box() {
+  local content="$1"
+  local padding=2
+  local IFS=$'\n'
+  local lines=($content)
+  local max_length=0
+  # Find the longest line for box width calculation
+  for line in "${lines[@]}"; do
+    (( ${#line} > max_length )) && max_length=${#line}
+  done
+  print -Pn "%F{blue}"
+  local box_width=$((max_length + padding * 2))
+  local border_top="╔$(printf '═%.0s' $(seq 1 $box_width))╗"
+  local border_bottom="╚$(printf '═%.0s' $(seq 1 $box_width))╝"
+  echo "$border_top"
+  for line in "${lines[@]}"; do
+    local total_space=$((box_width - ${#line}))
+    local left_space=$((total_space / 2))
+    local right_space=$((total_space - left_space))
+    # Print each line centered in the box
+    printf "%*s%s%*s\n" "$left_space" "" "$line" "$right_space" ""
+  done
+  echo "$border_bottom"
+}
+
+# Custom Header for section titles
+fancy_text_header() {
   local label="$1"
   local total_width=50
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
   print -Pn "%F{blue}"
+  # Print a centered header with '=' padding
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
 }
 
-# Function to print info about execution
-print_info() {
-  local words=(${(z)1})  # split message into words
-  local i=1
-  print -Pn "\n%F{cyan} ⓘ "
-  for word in $words; do
-    print -n -P "$word "
-    (( i++ % 20 == 0 )) && print
-  done
-  print -P "%f\n"
-}
-
-# Function to get free disk space in bytes
+# Function to get free disk space in bytes (for root volume)
 get_free_space() {
   df -k / | tail -1 | awk '{print $4 * 1024}'
+}
+
+# Function to get simple uptime (returns "X days", "Y hours", etc.)
+get_uptime() {
+  local uptime_part
+  uptime_part=$(uptime | awk -F'up ' '{split($2,a,","); print a[1]}' | sed -E '
+    s/^ *([0-9]+) days?.*/\1 days/;
+    s/^ *([0-9]+):[0-9]+.*/\1 hours/;
+    s/^ *([0-9]+) mins?.*/\1 minutes/;
+    s/^\s*$/Just booted/
+  ')
+  echo "$uptime_part"
 }
 
 # Function to convert bytes to human-readable format
@@ -155,198 +221,20 @@ human_readable_space() {
   fi
 }
 
-# Function to safely clean temp files
-clean_temp_files() {
-  local dir="$1"
-  local description="$2"
-  echo "${BLUE}Cleaning $description${RESET}"
-  # Count files before deletion
-  local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
-  if [[ $files_count -gt 0 ]]; then
-    # Use -delete instead of -exec rm for better performance
-    sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
-    echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
-  else
-    echo "${YELLOW}No old files found in $description${RESET}"
-  fi
+# Function to print info/hints about execution
+print_hints() {
+  local words=(${(z)1})  # split message into words
+  local i=1
+  print -Pn "\n%F{cyan} ⓘ "
+  for word in $words; do
+    print -n -P "$word "
+    (( i++ % 20 == 0 )) && print
+  done
+  print -P "%f\n"
 }
 
-# Function to check execution dependencies
-check_mac_dependencies() {
-  local dependencies_status=0
-  fancy_header "Checking Dependencies"
-  echo "${YELLOW}"
-  # Check Homebrew
-  if ! command -v brew >/dev/null 2>&1; then
-    echo "❌ Homebrew is not installed"
-    dependencies_status=1
-  else
-    echo "Homebrew is installed"
-  fi
-  # Check coreutils via Homebrew
-  if ! brew list coreutils >/dev/null 2>&1; then
-    echo "❌ coreutils is not installed via Homebrew"
-    dependencies_status=1
-  else
-    echo "coreutils is installed"
-  fi
-  # Check osascript (should always exist on macOS)
-  if ! command -v osascript >/dev/null 2>&1; then
-    echo "❌ osascript is not available"
-    dependencies_status=1
-  else
-    echo "osascript is available"
-  fi
-  # Final decision
-  if [[ $dependencies_status -eq 0 ]]; then
-    echo "Dependencies are in place, proceeding with cleanup"
-  else
-    echo "Dependencies did not comply"
-    echo "❌ Terminating script execution"
-    exit 1
-  fi
-  echo "${RESET}"
-}
-
-# Function to show RAM summary
-show_ram_summary() {
-  # macOS page size in bytes
-  local pagesize=4096
-  local to_mb=' / 1024 / 1024'
-  # Total physical RAM
-  local total_bytes=$(sysctl -n hw.memsize)
-  local total_gb=$((total_bytes / 1024 / 1024 / 1024))
-  # Extract page counts from vm_stat
-  local vm_output=$(vm_stat)
-  local pages_free=$(echo "$vm_output" | awk '/Pages free/ {gsub("\\.",""); print $3}')
-  local pages_active=$(echo "$vm_output" | awk '/Pages active/ {gsub("\\.",""); print $3}')
-  local pages_inactive=$(echo "$vm_output" | awk '/Pages inactive/ {gsub("\\.",""); print $3}')
-  local pages_wired=$(echo "$vm_output" | awk '/Pages wired down/ {gsub("\\.",""); print $4}')
-  local pages_compressed=$(echo "$vm_output" | awk '/Pages occupied by compressor/ {gsub("\\.",""); print $5}')
-  # Convert to MB
-  local free_mb=$((pages_free * pagesize / 1024 / 1024))
-  local active_mb=$((pages_active * pagesize / 1024 / 1024))
-  local inactive_mb=$((pages_inactive * pagesize / 1024 / 1024))
-  local wired_mb=$((pages_wired * pagesize / 1024 / 1024))
-  local compressed_mb=$((pages_compressed * pagesize / 1024 / 1024))
-  # Memory Pressure
-  local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
-  # Print the summary
-  echo "${GREEN}Total RAM  : ${total_gb} GB"
-  echo "Free RAM   : ${free_mb} MB"
-  echo "Active     : ${active_mb} MB"
-  echo "Inactive   : ${inactive_mb} MB"
-  echo "Wired      : ${wired_mb} MB"
-  echo "Compressed : ${compressed_mb} MB"
-  echo "Pressure   : ${pressure}${RESET}"
-}
-
-# Function to print summary
-print_summary() {
-  print_box " Summary "
-  echo ""
-  echo "${CYAN}System${RESET}${GREEN}"
-  echo ""
-  echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
-  echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
-  echo "  RAM     $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
-  echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
-  echo "  Uptime  $(get_simple_uptime)"
-  echo "${RESET}"
-  echo "${CYAN}Cleanup Performed${RESET}"
-  echo ""
-  [[ $user_caches_cleaned -gt 0 ]] && \
-    echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
-    echo "${YELLOW}  ● No junk found in user cache, nothing to clean up ${RESET}"
-  [[ $logs_cleaned -gt 0 ]] && \
-    echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
-    echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
-  [[ $trash_cleaned -gt 0 ]] && \
-    echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || \
-    echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
-  [[ $downloads_cleaned -gt 0 ]] && \
-    echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
-    echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
-  [[ $homebrew_cleaned == 1 ]] && \
-    echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || \
-    echo "${YELLOW}  ● Homebrew is already clean, no leftover files found ${RESET}"
-  [[ $memory_purged == 1 ]] && \
-    echo "${GREEN}  ✔ Cleared unused memory ${RESET}" || \
-    echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
-  [[ ${ios_backups_cleaned:-0} -gt 0 ]] && \
-    echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
-    echo "${YELLOW}  ● No iOS backups found to clean ${RESET}"
-  [[ ${derived_count:-0} -gt 0 ]] && \
-    echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
-    echo "${YELLOW}  ● No Xcode DerivedData found to clean ${RESET}"
-  [[ ${device_support_count:-0} -gt 0 ]] && \
-    echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
-    echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
-  [[ ${docker_cleaned:-0} -eq 1 ]] && \
-    echo "${GREEN}  ✔ Docker system pruned ${RESET}" || \
-    echo "${YELLOW}  ● Docker doesn’t seem to be installed on your system ${RESET}"
-
-  # Measure free disk space after cleanup
-  space_after=$(get_free_space)
-  space_freed=$(( space_after - space_before ))
-
-  # Get memory usage after purge
-  MEM_AFTER=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
-  MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
-
-  # Calculate memory freed
-  MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
-  MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
-
-  echo ""
-  echo "${CYAN}Results${RESET}"
-  echo ""
-
-  # Print memory freed
-  if (( MEM_FREED_MB > 0 )); then
-    echo "${GREEN}  RAM Cleaned  $MEM_FREED_MB Megabyte(MB)${RESET}"
-  else
-    echo "${YELLOW}  No additional RAM freed - possibly already optimized${RESET}"
-  fi
-
-  if (( space_freed > 0 )); then
-    echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}"
-  elif (( space_freed < 0 )); then
-    echo "${YELLOW}  No noticeable change, possibly already optimized${RESET}"
-  else
-    echo "${YELLOW}  Disk space unchanged, possibly already optimized${RESET}"
-  fi
-
-  # Add execution time
-  SCRIPT_END_TIME=$(date +%s)
-  if [[ -n "$SCRIPT_START_TIME" && -n "$SCRIPT_END_TIME" ]]; then
-    local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
-    local mins=$((elapsed / 60))
-    local secs=$((elapsed % 60))
-    echo "${GREEN}  Execution Time: ${mins}m ${secs}s${RESET}"
-  fi
-
-  echo "${GREEN}  Log File $LOGFILE"
-  echo "  Script Version $VER"
-  echo "${RESET}"
-  fancy_header "${AUTHOR} © $(date +%Y)"
-  echo ""
-}
-
-# Function to get simple uptime
-get_simple_uptime() {
-  local uptime_part
-  uptime_part=$(uptime | awk -F'up ' '{split($2,a,","); print a[1]}' | sed -E '
-    s/^ *([0-9]+) days?.*/\1 days/;
-    s/^ *([0-9]+):[0-9]+.*/\1 hours/;
-    s/^ *([0-9]+) mins?.*/\1 minutes/;
-    s/^\s*$/Just booted/
-  ')
-  echo "$uptime_part"
-}
-
-# Function to show Homebrew information
-show_brew_info() {
+# Function to show Homebrew information (summary)
+print_brew_info() {
   # Collect Homebrew information
   echo "${BLUE}Fetching Homebrew information${RESET}${GREEN}"
   local brew_path=$(command -v brew)
@@ -380,18 +268,158 @@ show_brew_info() {
   echo "Brew Services Running : $services_running${RESET}"
 }
 
+# Function to print summary at the end of the script
+print_clean_summary() {
+  # Only show Results section if not exited by user
+  if [[ "$USER_EXITED" -ne 1 ]]; then
+    fancy_title_box " Summary "
+    echo ""
+    echo "${CYAN}System${RESET}${GREEN}"
+    echo ""
+    echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
+    echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
+    echo "  RAM     $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
+    echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
+    echo "  Uptime  $(get_uptime)"
+    echo "${RESET}"
+    echo "${CYAN}Cleanup Performed${RESET}"
+    echo ""
+    [[ $user_caches_cleaned -gt 0 ]] && \
+      echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
+      echo "${YELLOW}  ● No junk found in user cache, nothing to clean up ${RESET}"
+    [[ $logs_cleaned -gt 0 ]] && \
+      echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
+      echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
+    [[ $trash_cleaned -gt 0 ]] && \
+      echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || \
+      echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
+    [[ $downloads_cleaned -gt 0 ]] && \
+      echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
+      echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
+    [[ $homebrew_cleaned == 1 ]] && \
+      echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || \
+      echo "${YELLOW}  ● Homebrew is already clean, no leftover files found ${RESET}"
+    [[ $memory_purged == 1 ]] && \
+      echo "${GREEN}  ✔ Cleared unused memory ${RESET}" || \
+      echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
+    [[ ${ios_backups_cleaned:-0} -gt 0 ]] && \
+      echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
+      echo "${YELLOW}  ● No iOS backups found to clean ${RESET}"
+    [[ ${derived_count:-0} -gt 0 ]] && \
+      echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
+      echo "${YELLOW}  ● No Xcode DerivedData found to clean ${RESET}"
+    [[ ${device_support_count:-0} -gt 0 ]] && \
+      echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
+      echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
+    [[ ${docker_cleaned:-0} -eq 1 ]] && \
+      echo "${GREEN}  ✔ Docker system pruned ${RESET}" || \
+      echo "${YELLOW}  ● Docker doesn’t seem to be installed on your system ${RESET}"
+
+    # Results section
+    space_after=$(get_free_space)
+    space_freed=$(( space_after - space_before ))
+
+    MEM_AFTER=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
+    MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
+
+    MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
+    MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
+
+    echo ""
+    echo "${CYAN}Results${RESET}"
+    echo ""
+
+    # Print memory freed
+    if (( MEM_FREED_MB > 0 )); then
+      echo "${GREEN}  RAM Cleaned  $MEM_FREED_MB Megabyte(MB)${RESET}"
+    else
+      echo "${YELLOW}  No additional RAM freed, possibly already optimized${RESET}"
+    fi
+
+    if (( space_freed > 0 )); then
+      echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}"
+    elif (( space_freed < 0 )); then
+      echo "${YELLOW}  Disk space unchanged, possibly already optimized${RESET}"
+    else
+      echo "${YELLOW}  Disk space unchanged, possibly already optimized${RESET}"
+    fi
+
+    # Add execution time
+    SCRIPT_END_TIME=$(date +%s)
+    if [[ -n "$SCRIPT_START_TIME" && -n "$SCRIPT_END_TIME" ]]; then
+      local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
+      local mins=$((elapsed / 60))
+      local secs=$((elapsed % 60))
+      echo "${GREEN}  Execution Time: ${mins}m ${secs}s${RESET}"
+    fi
+  fi
+
+  echo ""
+  echo "Log File $LOGFILE"
+  echo "Script Version $VER"
+  echo ""
+  fancy_text_header "${AUTHOR} © $(date +%Y)"
+  echo ""
+
+  # Flush filesystem buffers to ensure all changes are written to disk
+  sync
+  # Close file descriptors (for tee subshells)
+  exec 1>&- 2>&-
+  # Open the log file in Console (if available)
+  if command -v open >/dev/null 2>&1; then
+    open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
+  fi
+}
+
+# Function to show RAM summary (for display before/after purge)
+print_ram_info() {
+  # macOS page size in bytes
+  local pagesize=4096
+  local to_mb=' / 1024 / 1024'
+  # Total physical RAM
+  local total_bytes=$(sysctl -n hw.memsize)
+  local total_gb=$((total_bytes / 1024 / 1024 / 1024))
+  # Extract page counts from vm_stat
+  local vm_output=$(vm_stat)
+  local pages_free=$(echo "$vm_output" | awk '/Pages free/ {gsub("\\.",""); print $3}')
+  local pages_active=$(echo "$vm_output" | awk '/Pages active/ {gsub("\\.",""); print $3}')
+  local pages_inactive=$(echo "$vm_output" | awk '/Pages inactive/ {gsub("\\.",""); print $3}')
+  local pages_wired=$(echo "$vm_output" | awk '/Pages wired down/ {gsub("\\.",""); print $4}')
+  local pages_compressed=$(echo "$vm_output" | awk '/Pages occupied by compressor/ {gsub("\\.",""); print $5}')
+  # Convert to MB
+  local free_mb=$((pages_free * pagesize / 1024 / 1024))
+  local active_mb=$((pages_active * pagesize / 1024 / 1024))
+  local inactive_mb=$((pages_inactive * pagesize / 1024 / 1024))
+  local wired_mb=$((pages_wired * pagesize / 1024 / 1024))
+  local compressed_mb=$((pages_compressed * pagesize / 1024 / 1024))
+  # Memory Pressure
+  local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
+  # Print the summary
+  echo "${GREEN}Total RAM  : ${total_gb} GB"
+  echo "Free RAM   : ${free_mb} MB"
+  echo "Active     : ${active_mb} MB"
+  echo "Inactive   : ${inactive_mb} MB"
+  echo "Wired      : ${wired_mb} MB"
+  echo "Compressed : ${compressed_mb} MB"
+  echo "Pressure   : ${pressure}${RESET}"
+}
+
 # ───── Script Starts ─────
 clear
 
 # Ensure the script is run with zsh
 if [[ -z "$ZSH_VERSION" ]]; then
-  echo "❌ This script requires zsh to run. Please run it with zsh." >&2
-  exit 1
+  echo "❌ ${RED}This clean-mac requires zsh to run. Please run it with zsh${RESET}" >&2
+  USER_EXITED=1 # Set the flag so summary knows user exited
+  print_clean_summary
+  exit 0
 fi
 
 # Ensure the OS is macOS
 if [[ "$(uname)" != "Darwin" ]]; then
-  echo "❌ Unsupported OS: This script only works on macOS" >&2
+  echo "❌ ${RED}Unsupported OS: clean-mac only works for macOS${RESET}" >&2
+  USER_EXITED=1 # Set the flag so summary knows user exited
+  print_clean_summary
   exit 1
 fi
 
@@ -405,7 +433,7 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
 
 # Print the initial box with script info
 echo ""
-print_box " clean-mac.zsh "
+fancy_title_box " clean-mac.zsh "
 echo "${CYAN}"
 echo "clean-mac.zsh is a free, all-in-one script for macOS that quickly cleans caches, logs,"
 echo "temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep"
@@ -415,14 +443,15 @@ echo "$DATE"
 echo "Version $VER"
 echo "Author  $AUTHOR"
 echo "${RESET}"
-echo "${GREEN}Starting Mac cleanup${RESET}"
-echo "${GREEN}You might be asked for your password to perform certain tasks${RESET}"
-echo "${GREEN}For the smoothest experience, we recommend running this script directly in the macOS Terminal${RESET}"
-echo "${RED}To exit the script at any time, press << control + C >>${RESET}"
+echo "${GREEN}Starting clean-mac${RESET}"
+echo "${GREEN} ● You might be asked for your password to perform certain tasks${RESET}"
+echo "${GREEN} ● For the smoothest experience, we recommend running this script directly in the macOS Terminal${RESET}"
+echo "${YELLOW} ● You're going to need a stable internet connection for smooth execution${RESET}"
+echo "${RED} ● You can exit anytime by pressing control (⌃) + c${RESET}"
 echo ""
 
 # Print system details
-fancy_header " System Details "
+fancy_text_header " System Details "
 echo "${GREEN}"
 echo "Mac Model   : $MODEL"
 echo "CPU         : $CPU"
@@ -438,24 +467,28 @@ echo "IP          : $IP"
 echo "MAC         : $MAC"
 echo "${RESET}"
 
-# Check for required dependencies
-check_mac_dependencies
+# Check for required dependencies before proceeding
+check_dependencies
 
-# Ask for sudo once at the start
+# Ask user for consent to continue (can exit here)
+ask_user_consent
+
+# Ask for sudo once at the start (will prompt for password if needed)
 sudo -v
 
-# Keep sudo session alive
+# Keep sudo session alive in the background
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-# Measure free disk space before
+# Measure free disk space before cleanup
 space_before=$(get_free_space)
 
 # Step 1: Clear user caches
-fancy_header " Cleaning Caches "
-print_info "Clearing user caches frees space, removes junk, and improves performance and stability"
+fancy_text_header " Cleaning Caches "
+print_hints "Clearing user caches frees space, removes junk, and improves performance and stability"
 counter=0
 find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
   dirname=$(basename "$dir")
+  # Skip protected cache folders
   if [[ ${protected_caches[(ie)$dirname]} -le ${#protected_caches} ]]; then
     echo "${YELLOW}Skipping Protected Cache Folder: $dir${RESET}"
   else
@@ -473,8 +506,8 @@ fi
 echo ""
 
 # Step 2: Clean iOS device backups
-fancy_header " Cleaning iOS Device Backups "
-print_info "Removing old iOS device backups from MobileSync and Backup"
+fancy_text_header " Cleaning iOS Device Backups "
+print_hints "Removing old iOS device backups from MobileSync and Backup"
 if [[ -d "$IOS_BACKUP_DIR" ]]; then
   backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
   if (( backup_count > 0 )); then
@@ -493,8 +526,8 @@ fi
 echo ""
 
 # Step 3: Clean Xcode DerivedData and device support
-fancy_header " Cleaning Xcode Data "
-print_info "Removing Xcode DerivedData and DeviceSupport to free up space"
+fancy_text_header " Cleaning Xcode Data "
+print_hints "Removing Xcode DerivedData and DeviceSupport to free up space"
 if [[ -d "$XCODE_DERIVED_DATA" ]]; then
   derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   if [[ -n "$(ls -A "$XCODE_DERIVED_DATA")" ]]; then
@@ -516,8 +549,8 @@ fi
 echo ""
 
 # Step 4: Clean Docker system (if installed)
-fancy_header " Cleaning Docker System "
-print_info "Removing unused Docker images, containers, and volumes"
+fancy_text_header " Cleaning Docker System "
+print_hints "Removing unused Docker images, containers, and volumes"
 if command -v docker >/dev/null 2>&1; then
   docker system prune -af --volumes
   echo "${GREEN}Docker system pruned${RESET}"
@@ -529,8 +562,8 @@ fi
 echo ""
 
 # Step 5: Clean old system logs older than 7 days
-fancy_header " Cleaning Logs "
-print_info "Cleaning logs older than 7 days to save disk space and improve performance"
+fancy_text_header " Cleaning Logs "
+print_hints "Cleaning logs older than 7 days to save disk space and improve performance"
 old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}")
 old_logs=(${old_logs:#""})  # Clean empty entries
 if (( ${#old_logs[@]} == 0 )); then
@@ -546,9 +579,9 @@ else
 fi
 echo ""
 
-# Step 6: Empty Trash/Bin
-fancy_header " Cleaning Trash "
-print_info "Clearing Trash frees disk space and prevents clutter, vital for active users"
+# Step 6: Empty Trash/Bin for user, root, and all mounted volumes
+fancy_text_header " Cleaning Trash "
+print_hints "Clearing Trash frees disk space and prevents clutter, vital for active users"
 trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null)}")
 trash_files=(${trash_files:#""})
 if (( ${#trash_files[@]} == 0 )); then
@@ -594,16 +627,16 @@ fi
 echo ""
 
 # Step 7: Clean temporary files older than 3 days
-fancy_header " Cleaning Files "
-print_info "Temporary files slow systems, cleaning unused files (3+ days) improves performance"
+fancy_text_header " Cleaning Files "
+print_hints "Temporary files slow systems, cleaning unused files (3+ days) improves performance"
 clean_temp_files "/tmp" "system temporary directory"
 clean_temp_files "/var/tmp" "variable temporary directory"
 clean_temp_files "$HOME/Library/Caches/TemporaryItems" "user temporary items"
 echo ""
 
 # Step 8: Clean old Downloads
-fancy_header " Cleaning Downloads "
-print_info "The Downloads folder fills with old files, regularly deleting files frees space"
+fancy_text_header " Cleaning Downloads "
+print_hints "The Downloads folder fills with old files, regularly deleting files frees space"
 old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
 old_files=(${old_files:#""})
 if (( ${#old_files[@]} == 0 )); then
@@ -620,10 +653,10 @@ fi
 echo ""
 
 # Step 9: Homebrew cleanup
-fancy_header " Cleaning Homebrew "
-print_info "Homebrew is a popular macOS package manager for installing and managing software"
+fancy_text_header " Cleaning Homebrew "
+print_hints "Homebrew is a popular macOS package manager for installing and managing software"
 if command -v brew >/dev/null 2>&1; then
-  show_brew_info
+  print_brew_info
   echo "${BLUE}Cleaning Homebrew${RESET}"
   brew cleanup -s
   echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
@@ -635,9 +668,9 @@ fi
 echo ""
 
 # Step 10: Purge inactive memory (if possible)
-fancy_header " Cleaning Memory "
-print_info "Freeing inactive memory to boost performance without closing any running applications"
-show_ram_summary
+fancy_text_header " Cleaning Memory "
+print_hints "Freeing inactive memory to boost performance without closing any running applications"
+print_ram_info
 if command -v purge >/dev/null 2>&1; then
   sudo purge
   sleep 1
@@ -649,19 +682,8 @@ else
 fi
 echo ""
 
-# Print the cleanup summary
+# Print the cleanup summary at the end
 SCRIPT_END_TIME=$(date +%s)
-print_summary
-
-# Flush filesystem buffers to ensure all changes are written to disk
-sync
-
-# Close file descriptors (for tee subshells)
-exec 1>&- 2>&-
-
-# Open the log file in Console (if available)
-if command -v open >/dev/null 2>&1; then
-  open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
-fi
+print_clean_summary
 
 exit 0
