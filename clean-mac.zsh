@@ -4,7 +4,7 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.5.0-20250627WQRU
+# Version: 1.5.0-20250627-XQLSQ
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
 # Last Updated: 2025-06-27
@@ -19,6 +19,81 @@ RED=$'\e[31m'      # Bright Red - Error/Failure
 RESET=$'\e[0m'     # Reset all attributes
 WHITE='\e[97m'     # Bright White - General Info
 YELLOW=$'\e[33m'   # Bright Yellow - Warning/Skip
+
+# ───── Static Text Variables ─────
+SCRIPT_BOX_TITLE=" clean-mac.zsh "
+SCRIPT_DESCRIPTION="clean-mac.zsh is a free, all-in-one script for macOS that quickly cleans caches, logs,
+temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep
+your Mac running fast with just one command"
+SCRIPT_START_MSG="Starting clean-mac"
+SCRIPT_SUDO_MSG=" ● You might be asked for your password to perform certain tasks"
+SCRIPT_TERMINAL_MSG=" ● For the smoothest experience, we recommend running this script directly in the macOS Terminal"
+SCRIPT_INTERNET_MSG=" ● You're going to need a stable internet connection for smooth execution"
+SCRIPT_EXIT_MSG=" ● You can exit anytime by pressing control (⌃) + c"
+SYSTEM_DETAILS_HEADER=" System Details "
+MODEL_LABEL="Mac Model   :"
+CPU_LABEL="CPU         :"
+RAM_LABEL="RAM         :"
+STORAGE_LABEL="Storage     :"
+SERIAL_LABEL="Serial      :"
+OS_NAME_LABEL="OS Name     :"
+OS_VERSION_LABEL="OS Version  :"
+BUILD_LABEL="Build       :"
+UPTIME_LABEL="Uptime      :"
+INTERFACE_LABEL="Interface   :"
+IP_LABEL="IP          :"
+MAC_LABEL="MAC         :"
+DEPENDENCIES_HEADER="Checking Dependencies"
+CLEANING_CACHES_HEADER=" Cleaning Caches "
+CLEANING_CACHES_HINT="Clearing user caches frees space, removes junk, and improves performance and stability"
+CLEANING_IOS_HEADER=" Cleaning iOS Device Backups "
+CLEANING_IOS_HINT="Removing old iOS device backups from MobileSync and Backup"
+CLEANING_XCODE_HEADER=" Cleaning Xcode Data "
+CLEANING_XCODE_HINT="Removing Xcode DerivedData and DeviceSupport to free up space"
+CLEANING_DOCKER_HEADER=" Cleaning Docker System "
+CLEANING_DOCKER_HINT="Removing unused Docker images, containers, and volumes"
+CLEANING_LOGS_HEADER=" Cleaning Logs "
+CLEANING_LOGS_HINT="Cleaning logs older than 7 days to save disk space and improve performance"
+CLEANING_TRASH_HEADER=" Cleaning Trash "
+CLEANING_TRASH_HINT="Clearing Trash frees disk space and prevents clutter, vital for active users"
+CLEANING_FILES_HEADER=" Cleaning Files "
+CLEANING_FILES_HINT="Temporary files slow systems, cleaning unused files (3+ days) improves performance"
+CLEANING_DOWNLOADS_HEADER=" Cleaning Downloads "
+CLEANING_DOWNLOADS_HINT="The Downloads folder fills with old files, regularly deleting files frees space"
+CLEANING_HOMEBREW_HEADER=" Cleaning Homebrew "
+CLEANING_HOMEBREW_HINT="Homebrew is a popular macOS package manager for installing and managing software"
+CLEANING_MEMORY_HEADER=" Cleaning Memory "
+CLEANING_MEMORY_HINT="Freeing inactive memory to boost performance without closing any running applications"
+NO_FILES_TO_CLEAN_MSG="no files to clean"
+USER_CACHE_CLEANED_MSG="User Cache cleanup completed"
+USER_CACHE_CLEAN_MSG="User Cache Directories are clean — no files to clean"
+IOS_BACKUP_FOUND_MSG="Found"
+IOS_BACKUP_REMOVED_MSG="All iOS device backups removed"
+IOS_BACKUP_NONE_MSG="No iOS device backups found."
+IOS_BACKUP_DIR_NONE_MSG="No iOS device backup directory found"
+XCODE_DERIVED_CLEANED_MSG="Xcode DerivedData cleaned"
+XCODE_DERIVED_NONE_MSG="No Xcode DerivedData found"
+XCODE_DEVICE_CLEANED_MSG="Xcode DeviceSupport cleaned"
+XCODE_DEVICE_NONE_MSG="No Xcode DeviceSupport found"
+DOCKER_PRUNED_MSG="Docker system pruned"
+DOCKER_NOT_INSTALLED_MSG="Docker not installed, skipping Docker cleanup"
+LOG_CLEAN_MSG="LOG is clean — no files to clean"
+LOG_FILE_CLEANED_MSG="old LOG files cleaned"
+TRASH_CLEAN_MSG="User Trash is clean — no files to clean"
+TRASH_FILE_CLEANED_MSG="files cleaned"
+TRASH_USER_CLEANED_MSG="Trash for current user has been cleaned"
+SYSTEM_TRASH_CLEAN_MSG="System Trash is already clean"
+SYSTEM_TRASH_CLEANED_MSG="Trash for system has been cleaned"
+SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="System Trash folder not accessible"
+TRASH_VOLUME_CLEAN_MSG="Trash already clean on volume:"
+TRASH_VOLUME_CLEANED_MSG="Cleaned trash on volume:"
+NO_MOUNTED_VOLUME_MSG="No Mounted Volume found"
+DOWNLOADS_CLEAN_MSG="Downloads is clean — no files to clean"
+DOWNLOADS_FILE_CLEANED_MSG="files cleaned"
+HOMEBREW_CLEANED_MSG="Homebrew cleanup complete"
+HOMEBREW_NOT_INSTALLED_MSG="Homebrew not installed, skipping process"
+PURGE_CLEANED_MSG="Cleared unused memory"
+PURGE_NOT_AVAILABLE_MSG="'purge' command not available, skipping process"
 
 # ───── Global Variables ─────
 ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}') # First active interface
@@ -47,7 +122,7 @@ UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
 USER_EXITED=0 # Flag to indicate if user exited early
 
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
-VER="1.5.0-$(date +"%Y%m%d")WQRU" # Version info
+VER="1.5.0-$(date +"%Y%m%d")-XQLSQ" # Version info
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
 
@@ -188,6 +263,21 @@ fancy_text_header() {
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
+}
+
+# Function to generate a random 5-character string (A-Z, 1-9)
+generate_version_build() {
+  local chars=( {A..Z} {1..9} )
+  local num_chars=${#chars[@]}
+  if (( num_chars == 0 )); then
+    # echo "❌ Error: character array is empty!"
+    return 1
+  fi
+  local str=""
+  for _ in {1..5}; do
+    str+="${chars[RANDOM % num_chars]}"
+  done
+  echo "$str"
 }
 
 # Function to get free disk space in bytes (for root volume)
@@ -432,39 +522,36 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
      2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
 
 # Print the initial box with script info
-echo ""
-fancy_title_box " clean-mac.zsh "
+fancy_title_box "$SCRIPT_BOX_TITLE"
 echo "${CYAN}"
-echo "clean-mac.zsh is a free, all-in-one script for macOS that quickly cleans caches, logs,"
-echo "temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep"
-echo "your Mac running fast with just one command"
+echo "$SCRIPT_DESCRIPTION"
 echo "${RESET}${GREEN}"
 echo "$DATE"
 echo "Version $VER"
 echo "Author  $AUTHOR"
 echo "${RESET}"
-echo "${GREEN}Starting clean-mac${RESET}"
-echo "${GREEN} ● You might be asked for your password to perform certain tasks${RESET}"
-echo "${GREEN} ● For the smoothest experience, we recommend running this script directly in the macOS Terminal${RESET}"
-echo "${YELLOW} ● You're going to need a stable internet connection for smooth execution${RESET}"
-echo "${RED} ● You can exit anytime by pressing control (⌃) + c${RESET}"
+echo "${GREEN}$SCRIPT_START_MSG${RESET}"
+echo "${GREEN}$SCRIPT_SUDO_MSG${RESET}"
+echo "${GREEN}$SCRIPT_TERMINAL_MSG${RESET}"
+echo "${YELLOW}$SCRIPT_INTERNET_MSG${RESET}"
+echo "${RED}$SCRIPT_EXIT_MSG${RESET}"
 echo ""
 
 # Print system details
-fancy_text_header " System Details "
+fancy_text_header "$SYSTEM_DETAILS_HEADER"
 echo "${GREEN}"
-echo "Mac Model   : $MODEL"
-echo "CPU         : $CPU"
-echo "RAM         : $MEM"
-echo "Storage     : $DISK_SIZE"
-echo "Serial      : $SERIAL"
-echo "OS Name     : $OS_NAME"
-echo "OS Version  : $OS_VERSION"
-echo "Build       : $OS_BUILD"
-echo "Uptime      : $UPTIME"
-echo "Interface   : $ACTIVE_IF"
-echo "IP          : $IP"
-echo "MAC         : $MAC"
+echo "$MODEL_LABEL $MODEL"
+echo "$CPU_LABEL $CPU"
+echo "$RAM_LABEL $MEM"
+echo "$STORAGE_LABEL $DISK_SIZE"
+echo "$SERIAL_LABEL $SERIAL"
+echo "$OS_NAME_LABEL $OS_NAME"
+echo "$OS_VERSION_LABEL $OS_VERSION"
+echo "$BUILD_LABEL $OS_BUILD"
+echo "$UPTIME_LABEL $UPTIME"
+echo "$INTERFACE_LABEL $ACTIVE_IF"
+echo "$IP_LABEL $IP"
+echo "$MAC_LABEL $MAC"
 echo "${RESET}"
 
 # Check for required dependencies before proceeding
@@ -483,8 +570,8 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 space_before=$(get_free_space)
 
 # Step 1: Clear user caches
-fancy_text_header " Cleaning Caches "
-print_hints "Clearing user caches frees space, removes junk, and improves performance and stability"
+fancy_text_header "$CLEANING_CACHES_HEADER"
+print_hints "$CLEANING_CACHES_HINT"
 counter=0
 find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
   dirname=$(basename "$dir")
@@ -498,114 +585,114 @@ find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
   fi
 done
 if (( counter > 0 )); then
-  echo "${GREEN}User Cache cleanup completed${RESET}"
+  echo "${GREEN}$USER_CACHE_CLEANED_MSG${RESET}"
   user_caches_cleaned=$counter
 else
-  echo "${YELLOW}User Cache Directories are clean — no files to clean${RESET}"
+  echo "${YELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
 fi
 echo ""
 
 # Step 2: Clean iOS device backups
-fancy_text_header " Cleaning iOS Device Backups "
-print_hints "Removing old iOS device backups from MobileSync and Backup"
+fancy_text_header "$CLEANING_IOS_HEADER"
+print_hints "$CLEANING_IOS_HINT"
 if [[ -d "$IOS_BACKUP_DIR" ]]; then
   backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
   if (( backup_count > 0 )); then
-    echo "${BLUE}Found $backup_count iOS device backup(s)${RESET}"
+    echo "${BLUE}$IOS_BACKUP_FOUND_MSG $backup_count iOS device backup(s)${RESET}"
     sudo rm -rf "$IOS_BACKUP_DIR"/*
-    echo "${GREEN}All iOS device backups removed${RESET}"
+    echo "${GREEN}$IOS_BACKUP_REMOVED_MSG${RESET}"
     ios_backups_cleaned=$backup_count
   else
-    echo "${YELLOW}No iOS device backups found.${RESET}"
+    echo "${YELLOW}$IOS_BACKUP_NONE_MSG${RESET}"
     ios_backups_cleaned=0
   fi
 else
-  echo "${YELLOW}No iOS device backup directory found${RESET}"
+  echo "${YELLOW}$IOS_BACKUP_DIR_NONE_MSG${RESET}"
   ios_backups_cleaned=0
 fi
 echo ""
 
 # Step 3: Clean Xcode DerivedData and device support
-fancy_text_header " Cleaning Xcode Data "
-print_hints "Removing Xcode DerivedData and DeviceSupport to free up space"
+fancy_text_header "$CLEANING_XCODE_HEADER"
+print_hints "$CLEANING_XCODE_HINT"
 if [[ -d "$XCODE_DERIVED_DATA" ]]; then
   derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   if [[ -n "$(ls -A "$XCODE_DERIVED_DATA")" ]]; then
     sudo rm -rf "$XCODE_DERIVED_DATA"/*
-    echo "${GREEN}Xcode DerivedData cleaned ($derived_count items).${RESET}"
+    echo "${GREEN}$XCODE_DERIVED_CLEANED_MSG ($derived_count items).${RESET}"
   else
-    echo "${YELLOW}No Xcode DerivedData found${RESET}"
+    echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
   fi
 else
-  echo "${YELLOW}No Xcode DerivedData found${RESET}"
+  echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
 fi
 if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
   device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
   sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
-  echo "${GREEN}Xcode DeviceSupport cleaned ($device_support_count items)${RESET}"
+  echo "${GREEN}$XCODE_DEVICE_CLEANED_MSG ($device_support_count items)${RESET}"
 else
-  echo "${YELLOW}No Xcode DeviceSupport found${RESET}"
+  echo "${YELLOW}$XCODE_DEVICE_NONE_MSG${RESET}"
 fi
 echo ""
 
 # Step 4: Clean Docker system (if installed)
-fancy_text_header " Cleaning Docker System "
-print_hints "Removing unused Docker images, containers, and volumes"
+fancy_text_header "$CLEANING_DOCKER_HEADER"
+print_hints "$CLEANING_DOCKER_HINT"
 if command -v docker >/dev/null 2>&1; then
   docker system prune -af --volumes
-  echo "${GREEN}Docker system pruned${RESET}"
+  echo "${GREEN}$DOCKER_PRUNED_MSG${RESET}"
   docker_cleaned=1
 else
-  echo "${YELLOW}Docker not installed, skipping Docker cleanup${RESET}"
+  echo "${YELLOW}$DOCKER_NOT_INSTALLED_MSG${RESET}"
   docker_cleaned=0
 fi
 echo ""
 
 # Step 5: Clean old system logs older than 7 days
-fancy_text_header " Cleaning Logs "
-print_hints "Cleaning logs older than 7 days to save disk space and improve performance"
+fancy_text_header "$CLEANING_LOGS_HEADER"
+print_hints "$CLEANING_LOGS_HINT"
 old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}")
 old_logs=(${old_logs:#""})  # Clean empty entries
 if (( ${#old_logs[@]} == 0 )); then
-  echo "${YELLOW}LOG is clean — no files to clean${RESET}"
+  echo "${YELLOW}LOG is clean — $NO_FILES_TO_CLEAN_MSG${RESET}"
   logs_cleaned=0
 else
   for file in "${old_logs[@]}"; do
     echo "${BLUE}Cleaning LOG File: $file${RESET}"
     sudo rm -f "$file"
   done
-  echo "${GREEN}${#old_logs[@]} old LOG files cleaned${RESET}"
+  echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
   logs_cleaned=${#old_logs[@]}
 fi
 echo ""
 
 # Step 6: Empty Trash/Bin for user, root, and all mounted volumes
-fancy_text_header " Cleaning Trash "
-print_hints "Clearing Trash frees disk space and prevents clutter, vital for active users"
+fancy_text_header "$CLEANING_TRASH_HEADER"
+print_hints "$CLEANING_TRASH_HINT"
 trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null)}")
 trash_files=(${trash_files:#""})
 if (( ${#trash_files[@]} == 0 )); then
-  echo "${YELLOW}User Trash is clean — no files to clean${RESET}"
+  echo "${YELLOW}$TRASH_CLEAN_MSG${RESET}"
 else
   for file in "${trash_files[@]}"; do
     echo "${BLUE}Cleaning File: $file${RESET}"
   done
   osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
-  echo "${GREEN}${#trash_files[@]} files cleaned${RESET}"
-  echo "${GREEN}Trash for current user has been cleaned${RESET}"
+  echo "${GREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
+  echo "${GREEN}$TRASH_USER_CLEANED_MSG${RESET}"
   trash_cleaned=${#trash_files[@]}
 fi
 system_trash="/private/var/root/.Trash"
 if [[ -d "$system_trash" ]]; then
   if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
-    echo "${YELLOW}System Trash is already clean${RESET}"
+    echo "${YELLOW}$SYSTEM_TRASH_CLEAN_MSG${RESET}"
   else
     sudo rm -rf "$system_trash"/* 2>/dev/null
-    echo "${GREEN}Trash for system has been cleaned${RESET}"
+    echo "${GREEN}$SYSTEM_TRASH_CLEANED_MSG${RESET}"
     trash_cleaned=1
   fi
 else
-  echo "${YELLOW}System Trash folder not accessible${RESET}"
+  echo "${YELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
 fi
 found_volume=0
 for volume in /Volumes/*; do
@@ -613,71 +700,71 @@ for volume in /Volumes/*; do
   if [[ -d "$trashes_dir" ]]; then
     found_volume=1
     if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
-      echo "${YELLOW}Trash already clean on volume: $volume${RESET}"
+      echo "${YELLOW}$TRASH_VOLUME_CLEAN_MSG $volume${RESET}"
     else
       sudo rm -rf "$trashes_dir"/* 2>/dev/null
-      echo "${GREEN}Cleaned trash on volume: $volume${RESET}"
+      echo "${GREEN}$TRASH_VOLUME_CLEANED_MSG $volume${RESET}"
       trash_cleaned=1
     fi
   fi
 done
 if [[ $found_volume -eq 0 ]]; then
-  echo "${YELLOW}No Mounted Volume found${RESET}"
+  echo "${YELLOW}$NO_MOUNTED_VOLUME_MSG${RESET}"
 fi
 echo ""
 
 # Step 7: Clean temporary files older than 3 days
-fancy_text_header " Cleaning Files "
-print_hints "Temporary files slow systems, cleaning unused files (3+ days) improves performance"
+fancy_text_header "$CLEANING_FILES_HEADER"
+print_hints "$CLEANING_FILES_HINT"
 clean_temp_files "/tmp" "system temporary directory"
 clean_temp_files "/var/tmp" "variable temporary directory"
 clean_temp_files "$HOME/Library/Caches/TemporaryItems" "user temporary items"
 echo ""
 
 # Step 8: Clean old Downloads
-fancy_text_header " Cleaning Downloads "
-print_hints "The Downloads folder fills with old files, regularly deleting files frees space"
+fancy_text_header "$CLEANING_DOWNLOADS_HEADER"
+print_hints "$CLEANING_DOWNLOADS_HINT"
 old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
 old_files=(${old_files:#""})
 if (( ${#old_files[@]} == 0 )); then
-  echo "${YELLOW}Downloads is clean — no files to clean${RESET}"
+  echo "${YELLOW}$DOWNLOADS_CLEAN_MSG${RESET}"
   downloads_cleaned=0
 else
   for file in "${old_files[@]}"; do
     echo "${BLUE}Cleaning File: $file${RESET}"
     rm -f "$file"
   done
-  echo "${GREEN}${#old_files[@]} files cleaned${RESET}"
+  echo "${GREEN}${#old_files[@]} $DOWNLOADS_FILE_CLEANED_MSG${RESET}"
   downloads_cleaned=${#old_files[@]}
 fi
 echo ""
 
 # Step 9: Homebrew cleanup
-fancy_text_header " Cleaning Homebrew "
-print_hints "Homebrew is a popular macOS package manager for installing and managing software"
+fancy_text_header "$CLEANING_HOMEBREW_HEADER"
+print_hints "$CLEANING_HOMEBREW_HINT"
 if command -v brew >/dev/null 2>&1; then
   print_brew_info
   echo "${BLUE}Cleaning Homebrew${RESET}"
   brew cleanup -s
-  echo "${RESET}${GREEN}Homebrew cleanup complete${RESET}"
+  echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
   homebrew_cleaned=1
 else
-  echo "${YELLOW}Homebrew not installed, skipping process${RESET}"
+  echo "${YELLOW}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
   homebrew_cleaned=0
 fi
 echo ""
 
 # Step 10: Purge inactive memory (if possible)
-fancy_text_header " Cleaning Memory "
-print_hints "Freeing inactive memory to boost performance without closing any running applications"
+fancy_text_header "$CLEANING_MEMORY_HEADER"
+print_hints "$CLEANING_MEMORY_HINT"
 print_ram_info
 if command -v purge >/dev/null 2>&1; then
   sudo purge
   sleep 1
-  echo "${GREEN}Cleared unused memory${RESET}"
+  echo "${GREEN}$PURGE_CLEANED_MSG${RESET}"
   memory_purged=1
 else
-  echo "${RED}'purge' command not available, skipping process${RESET}"
+  echo "${RED}$PURGE_NOT_AVAILABLE_MSG${RESET}"
   memory_purged=0
 fi
 echo ""
