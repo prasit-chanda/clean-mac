@@ -4,10 +4,14 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.5.0-20250627-XQLSQ
+# Version: 1.6.3-20250628-7UKS4
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
-# Last Updated: 2025-06-27
+# Last Updated: 2025-06-28
+# License: Apache License 2.0
+# Usage: Run this script in macOS Terminal with zsh
+# Requirements: zsh, Homebrew, coreutils, osascript
+# Dependencies: Homebrew, coreutils, osascript
 # ------------------------------------------------------------------------------
 
 # ───── Static Colors Variables ─────
@@ -794,5 +798,8 @@ echo ""
 # Print the cleanup summary at the end
 SCRIPT_END_TIME=$(date +%s)
 print_clean_summary
+
+# Ensure all background jobs are killed on exit
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
 
 exit 0
