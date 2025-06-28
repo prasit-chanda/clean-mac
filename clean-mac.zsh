@@ -455,7 +455,7 @@ print_clean_summary() {
       local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
       local mins=$((elapsed / 60))
       local secs=$((elapsed % 60))
-      echo "${GREEN}  Execution Time: ${mins}m ${secs}s${RESET}"
+      echo "${GREEN}  Script Execution Time ${mins} min ${secs} sec${RESET}"
     fi
   fi
 
