@@ -4,7 +4,7 @@
 # Mac Cleanup Script
 # Author: Prasit Chanda
 # Platform: macOS
-# Version: 1.6.3-20250628-7UKS4
+# Version: 1.6.7-20250629-DX88M
 # Description: Safely cleans unused system/user cache, logs, temp files,
 #              empties trash, clears Homebrew leftovers, and reports space freed
 # Last Updated: 2025-06-28
@@ -72,7 +72,7 @@ OS_VERSION_LABEL="OS Version  :"
 PURGE_CLEANED_MSG="Cleared unused memory"
 PURGE_NOT_AVAILABLE_MSG="'purge' command not available, skipping process"
 RAM_LABEL="RAM         :"
-SCRIPT_BOX_TITLE=" clean-mac.zsh "
+SCRIPT_BOX_TITLE="clean-mac.zsh"
 SCRIPT_DESCRIPTION="clean-mac.zsh is a free, all-in-one script for macOS that quickly cleans caches, logs,
 temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep
 your Mac running fast with just one command"
@@ -126,7 +126,7 @@ SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Ser
 UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
 USER_EXITED=0 # Flag to indicate if user exited early
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
-VER="1.6.3-20250628-7UKS4" # Version info
+VER="1.6.7-20250629-DX88M" # Version info
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
 # List of protected cache folders (these will not be deleted)
@@ -142,12 +142,12 @@ protected_caches=(
 
 # Function to ask user if they want to exit
 ask_user_consent() {
-  print -nP "%F{yellow}Do you want to continue running the script? (y/n)"
+  print -nP "%F{yellow}Do you consent to continue executing the script? (y/n)"
   read answer
   echo ""
   case "$answer" in
     [nN]* )
-      echo "❌ ${RED}Execution of clean-mac.zsh cancelled by $(whoami)${RESET}"
+      echo "${RED}✖ Execution of clean-mac.zsh cancelled by $(whoami)${RESET}"
       echo ""
       USER_EXITED=1 # Set the flag so summary knows user exited
       print_clean_summary # Print summary (will skip results if exited)
@@ -183,21 +183,21 @@ check_dependencies() {
   echo ""
   # Check Homebrew
   if ! command -v brew >/dev/null 2>&1; then
-    echo "❌ ${RED}Homebrew is not installed${RESET}"
+    echo "✖ ${RED}Homebrew is not installed${RESET}"
     dependencies_status=1
   else
     echo "${GREEN}Homebrew is installed${RESET}"
   fi
   # Check coreutils via Homebrew
   if ! brew list coreutils >/dev/null 2>&1; then
-    echo "❌ ${RED}coreutils is not installed via Homebrew${RESET}"
+    echo "✖ ${RED}coreutils is not installed via Homebrew${RESET}"
     dependencies_status=1
   else
     echo "${GREEN}coreutils is installed${RESET}"
   fi
   # Check osascript (should always exist on macOS)
   if ! command -v osascript >/dev/null 2>&1; then
-    echo "❌ ${RED}osascript is not available${RESET}"
+    echo "${RED}✖ osascript is not available${RESET}"
     dependencies_status=1
   else
     echo "${GREEN}osascript is available${RESET}"
@@ -216,10 +216,10 @@ check_dependencies() {
 check_internet() {
   local timeout=2
   if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
-    echo "${GREEN}  ✔ Internet connection is active and stable${RESET}"
+    echo "${GREEN}  ✓ Internet connection is active and stable${RESET}"
     return 0
   else
-    echo "${RED}  ❌ You're offline or the connection is unstable${RESET}"
+    echo "${RED}  ✖ You're offline or the connection is unstable${RESET}"
     return 1
   fi
 }
@@ -241,7 +241,7 @@ fancy_line_divider() {
 # Custom Text Box for section titles or highlights
 fancy_title_box() {
   local content="$1"
-  local padding=2
+  local padding=1
   local IFS=$'\n'
   local lines=($content)
   local max_length=0
@@ -256,7 +256,7 @@ fancy_title_box() {
   echo "$border_top"
   for line in "${lines[@]}"; do
     local total_space=$((box_width - ${#line}))
-    local left_space=$((total_space / 2))
+    local left_space=$((total_space / 1))
     local right_space=$((total_space - left_space))
     # Print each line centered in the box
     printf "%*s%s%*s\n" "$left_space" "" "$line" "$right_space" ""
@@ -281,7 +281,7 @@ generate_random_string() {
   local chars=( {A..Z} {0..9})
   local num_chars=${#chars[@]}
   if (( num_chars == 0 )); then
-    # echo "❌ Error: character array is empty!"
+    # echo "✖ Error: character array is empty!"
     return 1
   fi
   local str=""
@@ -390,35 +390,35 @@ print_clean_summary() {
     echo ""
     check_internet
     [[ $user_caches_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✔ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
+      echo "${GREEN}  ✓ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
       echo "${YELLOW}  ● No junk found in user cache, nothing to clean up ${RESET}"
     [[ $logs_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✔ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
+      echo "${GREEN}  ✓ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
       echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
     [[ $trash_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✔ Trash cleaned ($trash_cleaned files) ${RESET}" || \
+      echo "${GREEN}  ✓ Trash cleaned ($trash_cleaned files) ${RESET}" || \
       echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
     [[ $downloads_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✔ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
+      echo "${GREEN}  ✓ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
       echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
     [[ $homebrew_cleaned == 1 ]] && \
-      echo "${GREEN}  ✔ Homebrew cleanup complete ${RESET}" || \
-      echo "${RED}  ❌ Homebrew not cleaned due to no install or no internet ${RESET}"
+      echo "${GREEN}  ✓ Homebrew cleanup complete ${RESET}" || \
+      echo "${RED}  ✖ Homebrew not cleaned due to no install or no internet ${RESET}"
     [[ $memory_purged == 1 ]] && \
-      echo "${GREEN}  ✔ Cleared unused memory ${RESET}" || \
+      echo "${GREEN}  ✓ Cleared unused memory ${RESET}" || \
       echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
     [[ ${ios_backups_cleaned:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✔ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
+      echo "${GREEN}  ✓ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
       echo "${YELLOW}  ● No iOS backups found to clean ${RESET}"
     [[ ${derived_count:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✔ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
+      echo "${GREEN}  ✓ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
       echo "${YELLOW}  ● No Xcode DerivedData found to clean ${RESET}"
     [[ ${device_support_count:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✔ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
+      echo "${GREEN}  ✓ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
       echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
     [[ ${docker_cleaned:-0} -eq 1 ]] && \
-      echo "${GREEN}  ✔ Docker system pruned ${RESET}" || \
-      echo "${RED}  ❌ Docker doesn’t seem to be installed on your system ${RESET}"
+      echo "${GREEN}  ✓ Docker system pruned ${RESET}" || \
+      echo "${RED}  ✖ Docker doesn’t seem to be installed on your system ${RESET}"
 
     # Results section
     # Measure memory and disk space freed
@@ -457,10 +457,10 @@ print_clean_summary() {
       local secs=$((elapsed % 60))
       echo "${GREEN}  Script Execution Time ${mins} min ${secs} sec${RESET}"
     fi
+    echo ""
   fi
 
   # Print Footer Contents
-  echo ""
   echo "Log File $LOGFILE"
   echo "Script Version $VER"
   echo ""
@@ -515,7 +515,7 @@ clear
 
 # Ensure the script is run with zsh
 if [[ -z "$ZSH_VERSION" ]]; then
-  echo "❌ ${RED}This clean-mac requires zsh to run. Please run it with zsh${RESET}" >&2
+  echo "✖ ${RED}This clean-mac requires zsh to run. Please run it with zsh${RESET}" >&2
   USER_EXITED=1 # Set the flag so summary knows user exited
   print_clean_summary
   exit 0
@@ -523,7 +523,7 @@ fi
 
 # Ensure the OS is macOS
 if [[ "$(uname)" != "Darwin" ]]; then
-  echo "❌ ${RED}Unsupported OS: clean-mac only works for macOS${RESET}" >&2
+  echo "✖ ${RED}Unsupported OS: clean-mac only works for macOS${RESET}" >&2
   USER_EXITED=1 # Set the flag so summary knows user exited
   print_clean_summary
   exit 1
