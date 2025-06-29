@@ -17,12 +17,11 @@
 # ───── Static Colors Variables ─────
 # Use standard, high-contrast ANSI codes for best visibility on both dark and light backgrounds
 BLUE=$'\e[94m'     # Bright Blue - Info/Action
-CYAN=$'\e[36m'     # Bright Cyan - General Info
-GREEN=$'\e[32m'    # Bright Green - Success
-RED=$'\e[31m'      # Bright Red - Error/Failure
+CYAN=$'\e[86m'     # Bright Cyan - General Info
+GREEN=$'\e[82m'    # Bright Green - Success
+RED=$'\e[91m'      # Bright Red - Error/Failure
 RESET=$'\e[0m'     # Reset all attributes
-WHITE='\e[97m'     # Bright White - General Info
-YELLOW=$'\e[33m'   # Bright Yellow - Warning/Skip
+YELLOW=$'\e[93m'   # Bright Yellow - Warning/Skip
 
 # ───── Static Text Variables ─────
 BUILD_LABEL="Build       :"
@@ -142,19 +141,19 @@ protected_caches=(
 
 # Function to ask user if they want to exit
 ask_user_consent() {
-  print -nP "%F{yellow}Do you consent to continue executing the script? (y/n)"
+  print -nP "%F{11}Do you consent to continue executing the script? (y/n) %f"
   read answer
   echo ""
   case "$answer" in
     [nN]* )
-      echo "${RED}✖ Execution of clean-mac.zsh cancelled by $(whoami)${RESET}"
+      echo "${RED}✖ $(whoami) hasn’t approved the execution of clean-mac.zsh${RESET}"
       echo ""
       USER_EXITED=1 # Set the flag so summary knows user exited
       print_clean_summary # Print summary (will skip results if exited)
       exit 0
       ;;
     * )
-      echo "${GREEN}$(whoami) gave the green light — launching clean-mac.zsh${RESET}"
+      echo "${GREEN}$(whoami) approved! Starting clean-mac.zsh now${RESET}"
       echo ""
       ;;
   esac
