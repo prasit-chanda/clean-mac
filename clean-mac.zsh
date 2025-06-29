@@ -4,17 +4,12 @@
 setopt nullglob extended_glob localoptions no_nomatch
 
 # ------------------------------------------------------------------------------
-# Mac Cleanup Script
+# clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Platform: macOS
 # Version: 1.6.7-20250629-DX88M
-# Description: Safely cleans unused system/user cache, logs, temp files,
-#              empties trash, clears Homebrew leftovers, and reports space freed
-# Last Updated: 2025-06-28
-# License: Apache License 2.0
-# Usage: Run this script in macOS Terminal with zsh
-# Requirements: zsh, Homebrew, coreutils, osascript
-# Dependencies: Homebrew, coreutils, osascript
+# License: Apache-2.0
+# Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
+# Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
 # ------------------------------------------------------------------------------
 
 # ───── Static Colors Variables ─────
@@ -103,34 +98,61 @@ XCODE_DEVICE_CLEANED_MSG="Xcode DeviceSupport cleaned"
 XCODE_DEVICE_NONE_MSG="No Xcode DeviceSupport found"
 
 # ───── Global Variables ─────
-ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}') # First active interface
-MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}') # MAC address
-AUTHOR="Prasit Chanda" # Author info (dynamic)
-CPU=$(sysctl -n machdep.cpu.brand_string) # CPU Info
+# First active interface
+ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
+# MAC address
+MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}')
+# Author info (dynamic)
+AUTHOR="Prasit Chanda"
+# CPU Info
+CPU=$(sysctl -n machdep.cpu.brand_string)
 DNS_SERVER="1.1.1.1"
-DATE=$(date "+%a, %d %b %Y %I:%M:%S %p") # Date info
-MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs) # Main disk
-DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs) # Disk size
-IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null) # IP address
-TS=$(date +"%Y%m%d%H%M%S") # Timestamp info
-LF="clean-mac-${TS}.log" # Log file info
-WD=$(pwd) # Working directory info
-LOGFILE="${WD}/${LF}" # Log file path
-MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB" # RAM Info
-MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//') # Memory usage before cleanup
-MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 )) # Memory before in MB
-MODEL=$(sysctl -n hw.model) # Hardware Model
-OS_BUILD=$(sw_vers -buildVersion) # OS Build
-OS_NAME=$(sw_vers -productName) # OS Name
-OS_VERSION=$(sw_vers -productVersion) # OS Version
-SCRIPT_START_TIME=$(date +%s) # Initialize cleanup counters
-SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }') # Serial Number
-UPTIME=$(uptime | cut -d ',' -f1 | xargs) # Uptime
-USER_EXITED=0 # Flag to indicate if user exited early
-IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup" # iOS device backup directory
-VER="1.6.7-20250629-DX88M" # Version info
-XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData" # Xcode DerivedData directory
-XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport" # Xcode DeviceSupport directory
+# Date info
+DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
+# Main disk
+MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
+# Disk size
+DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs)
+# IP address
+IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
+# Timestamp info
+TS=$(date +"%Y%m%d%H%M%S")
+# Log file info
+LF="clean-mac-${TS}.log"
+# Working directory info
+WD=$(pwd)
+# Log file path
+LOGFILE="${WD}/${LF}"
+# RAM Info
+MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB"
+# Memory usage before cleanup
+MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
+# Memory before in MB
+MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 ))
+# Hardware Model
+MODEL=$(sysctl -n hw.model)
+# OS Build
+OS_BUILD=$(sw_vers -buildVersion)
+# OS Name
+OS_NAME=$(sw_vers -productName)
+# OS Version
+OS_VERSION=$(sw_vers -productVersion)
+# Initialize cleanup counters
+SCRIPT_START_TIME=$(date +%s)
+# Serial Number
+SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }')
+# Uptime
+UPTIME=$(uptime | cut -d ',' -f1 | xargs)
+# Flag to indicate if user exited early
+USER_EXITED=0
+# iOS device backup directory
+IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
+# Version info
+VER="1.6.7-20250629-DX88M"
+# Xcode DerivedData directory
+XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
+# Xcode DeviceSupport directory
+XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 # List of protected cache folders (these will not be deleted)
 protected_caches=(
   "CloudKit"
