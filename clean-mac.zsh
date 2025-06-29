@@ -1,5 +1,8 @@
 #!/bin/zsh
 
+# Optimize globbing and file matching for safety and flexibility
+setopt nullglob extended_glob localoptions no_nomatch
+
 # ------------------------------------------------------------------------------
 # Mac Cleanup Script
 # Author: Prasit Chanda
@@ -340,25 +343,36 @@ print_hints() {
 print_brew_info() {
   # Collect Homebrew information
   echo "${BLUE}Fetching Homebrew information${RESET}${GREEN}"
-  local brew_path=$(command -v brew)
-  local brew_version=$(brew --version | head -n 1)
-  local installed_formulae=$(brew list --formulae 2>/dev/null | wc -l | tr -d ' ')
-  local installed_casks=$(brew list --cask 2>/dev/null | wc -l | tr -d ' ')
-  local outdated_formulae=$(brew outdated --formulae --quiet | wc -l | tr -d ' ')
-  local outdated_casks=$(brew outdated --cask --quiet | wc -l | tr -d ' ')
-  # Last update (checking Homebrew Git repo timestamp)
+  # simple facts
+  local brew_path=${commands[brew]}
+  local brew_version=$(brew --version | head -n1)
+  # one JSON hit for everything installed 
+  local json_installed
+  json_installed=$(brew info --json=v2 --installed)          
+  # you need jq (brew install jq) — it’s orders of magnitude faster than 4–5 more brew calls
+  local installed_formulae=$(jq '.formulae | length' <<<"$json_installed")
+  local installed_casks=$(jq '.casks    | length' <<<"$json_installed")
+  # one JSON hit for everything outdated
+  local json_outdated
+  json_outdated=$(brew outdated --json=v2)                  
+  local outdated_formulae=$(jq '.formulae | length' <<<"$json_outdated")
+  local outdated_casks=$(jq '.casks    | length' <<<"$json_outdated")
+  # last Git update (cheap)
+  # Just stat the FETCH_HEAD rather than walking history
+  local brew_repo=$(brew --repository)
+  local fetch_head="$brew_repo/.git/FETCH_HEAD"
+  local last_update
   local last_update=$(git -C "$(brew --repo)" log -1 --format="%cd" --date=short 2>/dev/null || echo "Unavailable")
-  # Disk usage of Homebrew Cellar
+  # disk usage  
   local cellar_path=$(brew --cellar)
   local disk_usage=$(du -sh "$cellar_path" 2>/dev/null | awk '{print $1}')
-  # Brew doctor output summary
-  local doctor_summary=$(brew doctor 2>&1 | grep -A3 "Warning" | head -n 6)
-  local doctor_status="OK"
-  if [[ -n "$doctor_summary" ]]; then
-    doctor_status="Warnings detected"
-  fi
+  # health check
+  # `brew doctor --quiet` exits 0 if OK, 1 if warnings — no parsing needed
+  brew doctor --quiet &>/dev/null
+  local doctor_status=$([[ $? -eq 0 ]] && echo "OK" || echo "Warnings detected")
   # Brew services running count
-  local services_running=$(brew services list 2>/dev/null | grep started | wc -l | tr -d ' ')
+  local services_running=$(brew services list 2>/dev/null | awk '$2 == "started" {count++} END {print count+0}')
+  # Print the Homebrew summary
   echo "Path                  : $brew_path"
   echo "Version               : $brew_version"
   echo "Installed Formulae    : $installed_formulae"
@@ -527,9 +541,6 @@ if [[ "$(uname)" != "Darwin" ]]; then
   print_clean_summary
   exit 1
 fi
-
-# Optimize globbing and file matching for safety and flexibility
-setopt nullglob extended_glob
 
 # Use stdbuf to ensure output is line-buffered for real-time logging
 # Strip ANSI color codes and save clean output to log, while keeping colored output in terminal
