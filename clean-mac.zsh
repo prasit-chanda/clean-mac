@@ -342,7 +342,7 @@ print_hints() {
 # Function to show Homebrew information (summary)
 print_brew_info() {
   # Collect Homebrew information
-  echo "${BLUE}Fetching Homebrew information${RESET}${GREEN}"
+  echo "${BLUE}Fetching Homebrew information${RESET}"
   # simple facts
   local brew_path=${commands[brew]}
   local brew_version=$(brew --version | head -n1)
@@ -373,6 +373,7 @@ print_brew_info() {
   # Brew services running count
   local services_running=$(brew services list 2>/dev/null | awk '$2 == "started" {count++} END {print count+0}')
   # Print the Homebrew summary
+  echo "${GREEN}"
   echo "Path                  : $brew_path"
   echo "Version               : $brew_version"
   echo "Installed Formulae    : $installed_formulae"
@@ -382,7 +383,8 @@ print_brew_info() {
   echo "Last Update           : $last_update"
   echo "Disk Usage (Cellar)   : ${disk_usage:-Unknown}"
   echo "Brew Doctor Status    : $doctor_status"
-  echo "Brew Services Running : $services_running${RESET}"
+  echo "Brew Services Running : $services_running"
+  echo "${RESET}"
 }
 
 # Function to print summary at the end of the script
@@ -466,9 +468,11 @@ print_clean_summary() {
     SCRIPT_END_TIME=$(date +%s)
     if [[ -n "$SCRIPT_START_TIME" && -n "$SCRIPT_END_TIME" ]]; then
       local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
-      local mins=$((elapsed / 60))
+      local hours=$((elapsed / 3600))
+      local mins=$(( (elapsed % 3600) / 60 ))
       local secs=$((elapsed % 60))
-      echo "${GREEN}  Script Execution Time ${mins} min ${secs} sec${RESET}"
+      local formatted_time=$(printf "%02d:%02d:%02d" $hours $mins $secs)
+      echo "${GREEN}  Script Execution Time ${formatted_time}${RESET}"
     fi
     echo ""
   fi
@@ -514,13 +518,15 @@ print_ram_info() {
   # Memory Pressure
   local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
   # Print the summary
-  echo "${GREEN}Total RAM  : ${total_gb} GB"
+  echo "${GREEN}"
+  echo "Total RAM  : ${total_gb} GB"
   echo "Free RAM   : ${free_mb} MB"
   echo "Active     : ${active_mb} MB"
   echo "Inactive   : ${inactive_mb} MB"
   echo "Wired      : ${wired_mb} MB"
   echo "Compressed : ${compressed_mb} MB"
-  echo "Pressure   : ${pressure}${RESET}"
+  echo "Memory     : ${pressure} FREE"
+  echo "${RESET}"
 }
 
 # ───── Script Starts ─────
