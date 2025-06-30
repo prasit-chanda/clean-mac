@@ -845,13 +845,13 @@ fancy_text_header "$CLEANING_MEMORY_HEADER"
 print_hints "$CLEANING_MEMORY_HINT"
 print_ram_info
 if command -v purge >/dev/null 2>&1; then
-  sudo purge
-  sleep 1
-  echo "${GREEN}$PURGE_CLEANED_MSG${RESET}"
-  memory_purged=1
+    sudo purge
+    sleep 1
+    echo "${GREEN}$PURGE_CLEANED_MSG${RESET}"
+    memory_purged=1
 else
-  echo "${RED}$PURGE_NOT_AVAILABLE_MSG${RESET}"
-  memory_purged=0
+    echo "${RED}$PURGE_NOT_AVAILABLE_MSG${RESET}"
+    memory_purged=0
 fi
 echo ""
 
