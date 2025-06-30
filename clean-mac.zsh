@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Version: 1.6.7-20250629-DX88M
+# Version: 2.0.0-20250702-O8Q3F
 # License: Apache-2.0
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
 # Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
@@ -75,7 +75,7 @@ USER_EXITED=0
 # iOS device backup directory
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
 # Version info
-VER="1.6.7-20250629-DX88M"
+VER="2.0.0-20250702-O8Q3F"
 # Xcode DerivedData directory
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 # Xcode DeviceSupport directory
@@ -90,91 +90,85 @@ protected_caches=(
 )
 
 # ───── Static Text Variables ─────
-BUILD_LABEL="Build       :"
-CLEANING_CACHES_HEADER="Caches "
-CLEANING_CACHES_HINT="Clearing user caches frees space, removes junk, and improves performance and stability"
+CLEANING_CACHES_HEADER="Caches"
+CLEANING_CACHES_HINT="Because clearly, your system loves hoarding junk"
 CLEANING_DOCKER_HEADER="Docker"
-CLEANING_DOCKER_HINT="Removing unused Docker images, containers, and volumes"
+CLEANING_DOCKER_HINT="Wiping all those ‘totally useful’ containers you forgot existed"
 CLEANING_DOWNLOADS_HEADER="Downloads"
-CLEANING_DOWNLOADS_HINT="The Downloads folder fills with old files, regularly deleting files frees space"
+CLEANING_DOWNLOADS_HINT="Old downloads? What could possibly go wrong keeping them forever?"
 CLEANING_FILES_HEADER="Files"
-CLEANING_FILES_HINT="Temporary files slow systems, cleaning unused files (3+ days) improves performance"
+CLEANING_FILES_HINT="Temporary files: the digital equivalent of dust bunnies"
 CLEANING_HOMEBREW_HEADER="Homebrew"
-CLEANING_HOMEBREW_HINT="Homebrew is a popular macOS package manager for installing and managing software"
+CLEANING_HOMEBREW_HINT="Homebrew: great at installing stuff, even better at leaving leftovers"
 CLEANING_IOS_HEADER="Backups"
-CLEANING_IOS_HINT="Removing old iOS device backups from MobileSync and Backup"
+CLEANING_IOS_HINT="Goodbye, ancient iPhone backups you didn’t know were still around"
 CLEANING_LOGS_HEADER="Logs"
-CLEANING_LOGS_HINT="Cleaning logs older than 7 days to save disk space and improve performance"
+CLEANING_LOGS_HINT="Because reading week-old logs is everyone’s idea of fun"
 CLEANING_MEMORY_HEADER="Memory"
-CLEANING_MEMORY_HINT="Freeing inactive memory to boost performance without closing any running applications"
+CLEANING_MEMORY_HINT="Let’s pretend this frees up memory magically (because it kinda does)"
 CLEANING_TRASH_HEADER="Trash"
-CLEANING_TRASH_HINT="Clearing Trash frees disk space and prevents clutter, vital for active users"
+CLEANING_TRASH_HINT="Your digital dumpster has feelings too — let's empty it"
 CLEANING_XCODE_HEADER="Xcode"
-CLEANING_XCODE_HINT="Removing Xcode DerivedData and DeviceSupport to free up space"
-CPU_LABEL="CPU         :"
+CLEANING_XCODE_HINT="Xcode loves clutter — time for a digital spring cleaning"
 DEPENDENCIES_HEADER="Dependencies"
-DOCKER_NOT_INSTALLED_MSG="Docker not installed, skipping Docker cleanup"
-DOCKER_PRUNED_MSG="Docker system pruned"
-DOWNLOADS_CLEAN_MSG="Downloads is clean — no files to clean"
-DOWNLOADS_FILE_CLEANED_MSG="files cleaned"
-HOMEBREW_CLEANED_MSG="Homebrew cleanup complete"
-HOMEBREW_CLEANUP_SKIPPED_MSG="Homebrew cleanup skipped due to connection issues"
-HOMEBREW_NOT_INSTALLED_MSG="Homebrew not installed, skipping process"
-INTERFACE_LABEL="Interface   :"
-IP_LABEL="IP          :"
-IOS_BACKUP_DIR_NONE_MSG="No iOS device backup directory found"
-IOS_BACKUP_FOUND_MSG="Found"
-IOS_BACKUP_NONE_MSG="No iOS device backups found."
-IOS_BACKUP_REMOVED_MSG="All iOS device backups removed"
-LOG_CLEAN_MSG="LOG is clean — no files to clean"
-LOG_FILE_CLEANED_MSG="old LOG files cleaned"
-MAC_LABEL="MAC         :"
-MODEL_LABEL="Mac Model   :"
-NO_FILES_TO_CLEAN_MSG="no files to clean"
-NO_MOUNTED_VOLUME_MSG="No Mounted Volume found"
-OS_NAME_LABEL="OS Name     :"
-OS_VERSION_LABEL="OS Version  :"
-PURGE_CLEANED_MSG="Cleared unused memory"
-PURGE_NOT_AVAILABLE_MSG="'purge' command not available, skipping process"
-RAM_LABEL="RAM         :"
+DEPENDENCIES_NOT_MSG="Nope, you're missing stuff — good luck"
+DEPENDENCIES_OK_MSG="Surprisingly, everything’s in place"
+DOCKER_NOT_INSTALLED_MSG="Docker’s not here — guess we can skip that drama"
+DOCKER_PRUNED_MSG="Docker junk has been sent to the void"
+DOWNLOADS_CLEAN_MSG="Wow, your Downloads folder is already clean!"
+DOWNLOADS_FILE_CLEANED_MSG="Files tossed from Downloads"
+HOMEBREW_CLEANED_MSG="Homebrew’s mess has been swept"
+HOMEBREW_CLEANUP_SKIPPED_MSG="Homebrew cleanup skipped — internet said nope"
+HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is here. Fancy."
+HOMEBREW_INSTALLED_MSG="Homebrew is installed. Shocking!"
+HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils is missing — blame Homebrew"
+HOMEBREW_NOT_INSTALLED_MSG="No Homebrew? Who even are you?"
+INTERNET_AVAILABLE_MSG="✓ Internet’s alive and actually working"
+INTERNET_UNAVAILABLE_MSG="✖ Internet’s either dead or having a meltdown"
+IOS_BACKUP_DIR_NONE_MSG="Where even is your backup folder?"
+IOS_BACKUP_FOUND_MSG="Found your old iOS baggage"
+IOS_BACKUP_NONE_MSG="No dusty iOS backups hanging around"
+IOS_BACKUP_REMOVED_MSG="Deleted your ancient iOS ghosts"
+LOG_CLEAN_MSG="Logs folder is already squeaky clean"
+LOG_FILE_CLEANED_MSG="Old logs have been quietly destroyed"
+NO_FILES_TO_CLEAN_MSG="Well, you’re actually tidy for once"
+NO_MOUNTED_VOLUME_MSG="No extra volumes found to snoop into"
+NOT_ZSH_MSG="Wrong shell, genius — this needs zsh"
+OSASCRIPT_AVAILABLE_MSG="osascript is good to go"
+OSASCRIPT_NOT_INSTALLED_MSG="osascript missing — it’s like forgetting Siri"
+PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) said 'go for it' — here we go"
+PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) chickened out — exiting"
+PROMPT_USER_CONSENT_MSG="%F{11}Care to let this script work its magic? (y/n) %f"
+PROMPT_VALIDATE_MSG="Yes or no. This isn’t a riddle. (y/n)"
+PURGE_CLEANED_MSG="RAM shaken and stirred"
+PURGE_NOT_AVAILABLE_MSG="No 'purge' command? Great. Skipping"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
-SCRIPT_DESCRIPTION="clean-mac.zsh is a free, all-in-one script for macOS that quickly cleans caches, logs,
-temp files, old downloads, and Homebrew leftovers—helping you reclaim space and keep
-your Mac running fast with just one command"
-SCRIPT_EXIT_MSG=" ● You can exit anytime by pressing control (⌃) + c"
-SCRIPT_INTERNET_MSG=" ● You're going to need a stable internet connection for smooth execution"
-SCRIPT_START_MSG="Starting clean-mac"
-SCRIPT_SUDO_MSG=" ● You might be asked for your password to perform certain tasks"
-SCRIPT_TERMINAL_MSG=" ● Run in macOS Terminal for best results"
-SERIAL_LABEL="Serial      :"
-STORAGE_LABEL="Storage     :"
+SCRIPT_DESCRIPTION="One script to delete it all — caches, logs, downloads, and the guilt of neglect"
+SCRIPT_EXIT_MSG=" ● Press ⌃ + C anytime if your courage fails you"
+SCRIPT_INTERNET_MSG=" ● This script likes internet. Don't deny it"
+SCRIPT_START_MSG="Launching clean-mac — brace yourself"
+SCRIPT_SUDO_MSG=" ● Might need your password — no, not for evil"
+SCRIPT_TERMINAL_MSG=" ● Pro tip: Run this in Terminal, not Notes.app"
 SYSTEM_DETAILS_HEADER="System"
-SYSTEM_TRASH_CLEAN_MSG="System Trash is already clean"
-SYSTEM_TRASH_CLEANED_MSG="Trash for system has been cleaned"
-SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="System Trash folder not accessible"
-TRASH_CLEAN_MSG="User Trash is clean — no files to clean"
-TRASH_FILE_CLEANED_MSG="files cleaned"
-TRASH_USER_CLEANED_MSG="Trash for current user has been cleaned"
-TRASH_VOLUME_CLEAN_MSG="Trash already clean on volume:"
-TRASH_VOLUME_CLEANED_MSG="Cleaned trash on volume:"
-UPTIME_LABEL="Uptime      :"
-USER_CACHE_CLEAN_MSG="User Cache Directories are clean — no files to clean"
-USER_CACHE_CLEANED_MSG="User Cache cleanup completed"
-XCODE_DERIVED_CLEANED_MSG="Xcode DerivedData cleaned"
-XCODE_DERIVED_NONE_MSG="No Xcode DerivedData found"
-XCODE_DEVICE_CLEANED_MSG="Xcode DeviceSupport cleaned"
-XCODE_DEVICE_NONE_MSG="No Xcode DeviceSupport found"
-PROMPT_USER_CONSENT_MSG="%F{11}Do you consent to continue executing the script? (y/n) %f"
-PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) approved! Starting clean-mac.zsh now"
-PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) hasn’t approved the execution of clean-mac.zsh"
-PROMPT_VALIDATE_MSG="Please answer yes or no (y/n)"
-NOT_ZSH_MSG="✖ This clean-mac requires zsh to run. Please run it with zsh"
-UNSUPPORTED_OS_MSG="✖ Unsupported OS: clean-mac only works for macOS"
+SYSTEM_TRASH_CLEAN_MSG="System Trash already sparkling"
+SYSTEM_TRASH_CLEANED_MSG="System Trash successfully vaporized"
+SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="Can’t touch System Trash — macOS says nope"
+TRASH_CLEAN_MSG="User Trash? Empty as your new year's resolutions"
+TRASH_FILE_CLEANED_MSG="Files deleted, no funeral held"
+TRASH_USER_CLEANED_MSG="User Trash has been taken out"
+TRASH_VOLUME_CLEAN_MSG="That volume’s Trash is already empty"
+TRASH_VOLUME_CLEANED_MSG="Took the trash out from this volume"
+UNSUPPORTED_OS_MSG="✖ Nice try — this only works on macOS"
+USER_CACHE_CLEAN_MSG="User cache is already empty — shocking"
+USER_CACHE_CLEANED_MSG="User cache cleared like a champ"
+XCODE_DERIVED_CLEANED_MSG="DerivedData? Poof. Gone"
+XCODE_DERIVED_NONE_MSG="No DerivedData here — you’re safe"
+XCODE_DEVICE_CLEANED_MSG="Xcode device leftovers cleaned"
+XCODE_DEVICE_NONE_MSG="No devices to clean — what a surprise"
  
 # ───── Custom Methods ─────
 
 # This function asks the user for consent to continue
-# Exits if user denies consent
 ask_user_consent() {
   while true; do
     print -nP "$PROMPT_USER_CONSENT_MSG"
@@ -230,48 +224,50 @@ check_dependencies() {
   echo ""
   # Check Homebrew
   if ! command -v brew >/dev/null 2>&1; then
-    echo "✖ ${RED}Homebrew is not installed${RESET}"
+    
+    echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
     dependencies_status=1
   else
-    echo "${GREEN}Homebrew is installed${RESET}"
+    echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
   # Check coreutils via Homebrew
   if ! brew list coreutils >/dev/null 2>&1; then
-    echo "✖ ${RED}coreutils is not installed via Homebrew${RESET}"
+    echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
     dependencies_status=1
   else
-    echo "${GREEN}coreutils is installed${RESET}"
+    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
   fi
   # Check osascript (should always exist on macOS)
   if ! command -v osascript >/dev/null 2>&1; then
-    echo "${RED}✖ osascript is not available${RESET}"
+    echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
     dependencies_status=1
   else
-    echo "${GREEN}osascript is available${RESET}"
+    echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
   # Final decision
   if [[ $dependencies_status -eq 0 ]]; then
-    echo "${GREEN}Dependencies are in place${RESET}"
+    echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
   else
-    echo "${RED}Dependencies did not comply${RESET}"
+    echo "${RED}$DEPENDENCIES_NOT_MSG${RESET}"
     echo ""
   fi
   echo ""
 }
 
 # Function to check if the user has an internet connection
+# This uses ping to a reliable DNS server
 check_internet() {
   local timeout=2
   if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
-    echo "${GREEN}  ✓ Internet connection is active and stable${RESET}"
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
     return 0
   else
-    echo "${RED}  ✖ You're offline or the connection is unstable${RESET}"
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
     return 1
   fi
 }
 
-# Custom Divider for section separation
+# This function prints a fancy line divider
 fancy_line_divider() {
   # Total width of the divider
   local width=${1:-50}
@@ -285,7 +281,7 @@ fancy_line_divider() {
   print -r -- "$line"
 }
 
-# Custom Text Box for section titles or highlights
+# This function creates a fancy text box with centered content
 fancy_title_box() {
   local content="$1"
   local padding=1
@@ -311,7 +307,7 @@ fancy_title_box() {
   echo "$border_bottom"
 }
 
-# Custom Header for section titles
+# This function prints a centered header with padding
 fancy_text_header() {
   local label="$1"
   local total_width=25
@@ -324,6 +320,8 @@ fancy_text_header() {
 }
 
 # Function to generate a random 5-character string (A-Z, 1-9)
+# This is used for unique scan IDs
+# It generates a string like "A1B2C-3D4E-F5G6-H7I8-J9K0"
 generate_random_string() {
   local chars=( {A..Z} {0..9})
   local num_chars=${#chars[@]}
@@ -620,18 +618,18 @@ echo ""
 # Print System Details
 fancy_text_header "$SYSTEM_DETAILS_HEADER"
 echo "${GREEN}"
-echo "$MODEL_LABEL $MODEL"
-echo "$CPU_LABEL $CPU"
-echo "$RAM_LABEL $MEM"
-echo "$STORAGE_LABEL $DISK_SIZE"
-echo "$SERIAL_LABEL $SERIAL"
-echo "$OS_NAME_LABEL $OS_NAME"
-echo "$OS_VERSION_LABEL $OS_VERSION"
-echo "$BUILD_LABEL $OS_BUILD"
-echo "$UPTIME_LABEL $UPTIME"
-echo "$INTERFACE_LABEL $ACTIVE_IF"
-echo "$IP_LABEL $IP"
-echo "$MAC_LABEL $MAC"
+echo "Model     $MODEL"
+echo "CPU       $CPU"
+echo "RAM       $MEM"
+echo "Storage   $DISK_SIZE"
+echo "Serial    $SERIAL"
+echo "OS        $OS_NAME"
+echo "Version   $OS_VERSION"
+echo "Build     $OS_BUILD"
+echo "Uptime    $UPTIME"
+echo "NetIface  $ACTIVE_IF"
+echo "IP        $IP"
+echo "MAC       $MAC"
 echo "${RESET}"
 
 # Check for required dependencies before proceeding
