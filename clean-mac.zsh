@@ -1,5 +1,8 @@
 #!/bin/zsh
 
+# Stricter error handling: exit on error, unset variable, or failed pipeline
+#set -euo pipefail
+
 # Optimize globbing and file matching for safety and flexibility
 setopt nullglob extended_glob localoptions no_nomatch
 
@@ -162,11 +165,12 @@ XCODE_DERIVED_NONE_MSG="No Xcode DerivedData found"
 XCODE_DEVICE_CLEANED_MSG="Xcode DeviceSupport cleaned"
 XCODE_DEVICE_NONE_MSG="No Xcode DeviceSupport found"
 PROMPT_USER_CONSENT_MSG="%F{11}Do you consent to continue executing the script? (y/n) %f"
-PROMPT_USER_CONSENT_APPROVAL="$✓ (whoami) approved! Starting clean-mac.zsh now"
+PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) approved! Starting clean-mac.zsh now"
 PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) hasn’t approved the execution of clean-mac.zsh"
 PROMPT_VALIDATE_MSG="Please answer yes or no (y/n)"
-
-
+NOT_ZSH_MSG="✖ This clean-mac requires zsh to run. Please run it with zsh"
+UNSUPPORTED_OS_MSG="✖ Unsupported OS: clean-mac only works for macOS"
+ 
 # ───── Custom Methods ─────
 
 # This function asks the user for consent to continue
@@ -194,6 +198,13 @@ ask_user_consent() {
         ;;
     esac
   done
+}
+
+# Cleanup function: kills background jobs and syncs log file
+cleanup() {
+  trap - EXIT
+  kill $(jobs -p) 2>/dev/null
+  sync
 }
 
 # Function to safely clean temp files in a directory older than 3 days
@@ -566,27 +577,28 @@ print_ram_info() {
 # ───── Script Starts ─────
 clear
 
+# Create log file and redirect output
+exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
+     2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
+
 # Ensure the script is run with zsh
 if [[ -z "$ZSH_VERSION" ]]; then
-  echo "✖ ${RED}This clean-mac requires zsh to run. Please run it with zsh${RESET}" >&2
-  USER_EXITED=1 # Set the flag so summary knows user exited
-  print_clean_summary
+  echo "${RED}$NOT_ZSH_MSG${RESET}" >&2
+  USER_EXITED=1       # Set the flag so summary knows user exited
+  print_clean_summary # Print summary (will skip results if exited)      
+  exit 0
+fi
+ 
+# Ensure the OS is macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+  echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
+  USER_EXITED=1       # Set the flag so summary knows user exited
+  print_clean_summary # Print summary (will skip results if exited)
   exit 0
 fi
 
-# Ensure the OS is macOS
-if [[ "$(uname)" != "Darwin" ]]; then
-  echo "✖ ${RED}Unsupported OS: clean-mac only works for macOS${RESET}" >&2
-  USER_EXITED=1 # Set the flag so summary knows user exited
-  print_clean_summary
-  exit 1
-fi
-
-# Use stdbuf to ensure output is line-buffered for real-time logging
-# Strip ANSI color codes and save clean output to log, while keeping colored output in terminal
-# Need to install <brew install coreutils>
-exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
-     2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
+# Ensure the script is run with sudo privileges
+trap cleanup EXIT INT TERM
 
 # Print the script Title in a fancy box with Details
 fancy_title_box "$SCRIPT_BOX_TITLE"
