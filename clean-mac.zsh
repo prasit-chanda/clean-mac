@@ -162,8 +162,8 @@ XCODE_DERIVED_NONE_MSG="No Xcode DerivedData found"
 XCODE_DEVICE_CLEANED_MSG="Xcode DeviceSupport cleaned"
 XCODE_DEVICE_NONE_MSG="No Xcode DeviceSupport found"
 PROMPT_USER_CONSENT_MSG="%F{11}Do you consent to continue executing the script? (y/n) %f"
-PROMPT_USER_CONSENT_APPROVAL="%F{2}$(whoami) approved! Starting clean-mac.zsh now%f"
-PROMPT_USER_CONSENT_DENIAL="%F{1}✖ $(whoami) hasn’t approved the execution of clean-mac.zsh%f"
+PROMPT_USER_CONSENT_APPROVAL="$✓ (whoami) approved! Starting clean-mac.zsh now"
+PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) hasn’t approved the execution of clean-mac.zsh"
 PROMPT_VALIDATE_MSG="Please answer yes or no (y/n)"
 
 
@@ -185,7 +185,7 @@ ask_user_consent() {
       [nN][oO]|[nN])
         echo "${RED}$PROMPT_USER_CONSENT_DENIAL${RESET}"
         echo ""
-        SER_EXITED=1 # Set the flag so summary knows user exited
+        USER_EXITED=1       # Set the flag so summary knows user exited
         print_clean_summary # Print summary (will skip results if exited)
         exit 0
         ;;
