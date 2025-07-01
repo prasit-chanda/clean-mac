@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # Stricter error handling: exit on error, unset variable, or failed pipeline
-#set -euo pipefail
+# set -euo pipefail
 
 # Optimize globbing and file matching for safety and flexibility
 setopt nullglob extended_glob localoptions no_nomatch
@@ -70,6 +70,7 @@ protected_caches=(
 )
 
 # ───── Static Text Variables ─────
+AUTHOR_COPYRIGHT=" ${AUTHOR} © $(date +%Y) "
 CLEANING_CACHES_HEADER="Caches"
 CLEANING_CACHES_HINT="Because your Mac clearly enjoys hoarding nonsense"
 CLEANING_DOCKER_HEADER="Docker"
@@ -104,6 +105,9 @@ DOCKER_PRUNED_MSG="Docker junk has been sent to the void"
 DOWNLOADS_CLEAN_MSG="Wow, nothing to delete. Miracles happen"
 DOWNLOADS_FILE_CLEANED_MSG="Old downloads thrown out. You're welcome"
 DS_NONE="  ● Xcode DeviceSupport folder is clean too"
+FOOTER_LOG_DIR_MSG="Folder   $WD"
+FOOTER_LOG_FILE_MSG="Log      $LF"
+FOOTER_SCRIPT_VERSION_MSG="Tag      $VER"
 HOMEBREW_CLEANED_MSG="Homebrew leftovers swept. That felt good"
 HOMEBREW_CLEANUP_SKIPPED_MSG="Skipped. No Homebrew or no internet. Not your day"
 HOMEBREW_CLEAN_HEADER_MSG="Cleaning Homebrew"
@@ -589,10 +593,11 @@ print_clean_summary() {
     echo ""
   fi
   # Print Footer Contents
-  echo "Log File $LOGFILE"
-  echo "Script Version $VER"
+  echo "$FOOTER_LOG_DIR_MSG"
+  echo "$FOOTER_LOG_FILE_MSG"
+  echo "$FOOTER_SCRIPT_VERSION_MSG"
   echo ""
-  fancy_text_header " ${AUTHOR} © $(date +%Y) "
+  fancy_text_header "$AUTHOR_COPYRIGHT"
   echo ""
   # Flush filesystem buffers to ensure all changes are written to disk
   sync
