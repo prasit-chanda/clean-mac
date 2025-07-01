@@ -126,6 +126,9 @@ HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is here. Fancy."
 HOMEBREW_INSTALLED_MSG="Homebrew is installed. Shocking!"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils is missing — blame Homebrew"
 HOMEBREW_NOT_INSTALLED_MSG="No Homebrew? Who even are you?"
+HOMEBREW_INSTALL_COREUTIL_ASK_MSG="Install coreutils via Homebrew? (y/n): "
+HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="Failed to install coreutils"
+HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="coreutils installation failed. Please install it manually."
 INTERNET_AVAILABLE_MSG="✓ Internet’s alive and actually working"
 INTERNET_UNAVAILABLE_MSG="✖ Internet’s either dead or having a meltdown"
 IOS_BACKUP_DIR_NONE_MSG="Where even is your backup folder?"
@@ -243,7 +246,31 @@ check_dependencies() {
   # Check coreutils via Homebrew
   if ! brew list coreutils >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
-    dependencies_status=1
+    # Ask user if they want to install coreutils
+    while true; do
+      print -nP "${YELLOW}$HOMEBREW_INSTALL_COREUTIL_ASK_MSG${RESET}"
+      read coreutil_answer
+      case "$coreutil_answer" in
+        [yY][eE][sS]|[yY])
+          brew install coreutils
+          if brew list coreutils >/dev/null 2>&1; then
+            echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
+          else
+            echo "${RED}$HOMEBREW_INSTALL_COREUTIL_FAIL_MSG${RESET}"
+            dependencies_status=1
+          fi
+          break
+          ;;
+        [nN][oO]|[nN])
+          echo "${YELLOW}$HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG${RESET}"
+          dependencies_status=1
+          break
+          ;;
+        *)
+          echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+          ;;
+      esac
+    done
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
   fi
