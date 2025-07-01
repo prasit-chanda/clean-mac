@@ -171,6 +171,11 @@ XCODE_DERIVED_CLEANED_MSG="DerivedData? Poof. Gone"
 XCODE_DERIVED_NONE_MSG="No DerivedData here — you’re safe"
 XCODE_DEVICE_CLEANED_MSG="Xcode device leftovers cleaned"
 XCODE_DEVICE_NONE_MSG="No devices to clean — what a surprise"
+OSASCRIPT_INSTALL_ASK_MSG="Install osascript via Homebrew? (y/n): "
+OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed successfully"
+OSASCRIPT_INSTALL_FAILED_MSG="Failed to install osascript. Please install it manually"
+OSASCRIPT_INSTALL_SKIPPED_MSG="osascript installation skipped. Please install it manually"
+OSASCRIPT_INSTALL_CANT_MSG="osascript cannot be installed automatically. Please install it manually"
  
 # ───── Custom Methods ─────
 
@@ -277,7 +282,36 @@ check_dependencies() {
   # Check osascript (should always exist on macOS)
   if ! command -v osascript >/dev/null 2>&1; then
     echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
-    dependencies_status=1
+    # Try to install osascript via Homebrew if possible, else prompt user
+    if command -v brew >/dev/null 2>&1 && brew search osascript | grep -q osascript; then
+      while true; do
+        print -nP "${YELLOW}$OSASCRIPT_INSTALL_ASK_MSG${RESET}"
+        read osascript_answer
+        case "$osascript_answer" in
+          [yY][eE][sS]|[yY])
+            brew install osascript
+            if command -v osascript >/dev/null 2>&1; then
+              echo "${GREEN}$OSASCRIPT_INSTALL_SUCCESS_MSG${RESET}"
+            else
+              echo "${RED}$OSASCRIPT_INSTALL_FAILED_MSG${RESET}"
+              dependencies_status=1
+            fi
+            break
+            ;;
+          [nN][oO]|[nN])
+            echo "${YELLOW}$OSASCRIPT_INSTALL_SKIPPED_MSG${RESET}"
+            dependencies_status=1
+            break
+            ;;
+          *)
+            echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+            ;;
+        esac
+      done
+    else
+      echo "${YELLOW}$OSASCRIPT_INSTALL_CANT_MSG${RESET}"
+      dependencies_status=1
+    fi
   else
     echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
