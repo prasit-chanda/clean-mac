@@ -119,6 +119,9 @@ DOWNLOADS_CLEAN_MSG="Wow, your Downloads folder is already clean!"
 DOWNLOADS_FILE_CLEANED_MSG="Files tossed from Downloads"
 HOMEBREW_CLEANED_MSG="Homebrew’s mess has been swept"
 HOMEBREW_CLEANUP_SKIPPED_MSG="Homebrew cleanup skipped — internet said nope"
+HOMEBREW_INSTALL_ATTEMPT_MSG="Attempting to install Homebrew"
+HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew installed successfully"
+HOMEBREW_INSTALL_FAILED_MSG="Homebrew installation failed. Please install it manually from https://brew.sh/"
 HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is here. Fancy."
 HOMEBREW_INSTALLED_MSG="Homebrew is installed. Shocking!"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils is missing — blame Homebrew"
@@ -224,9 +227,16 @@ check_dependencies() {
   echo ""
   # Check Homebrew
   if ! command -v brew >/dev/null 2>&1; then
-    
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
-    dependencies_status=1
+    echo "${YELLOW}$HOMEBREW_INSTALL_ATTEMPT_MSG${RESET}"
+    # Try to install Homebrew non-interactively
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if command -v brew >/dev/null 2>&1; then
+      echo "${GREEN}$HOMEBREW_INSTALL_SUCCESS_MSG${RESET}"
+    else
+      echo "${RED}$HOMEBREW_INSTALL_FAILED_MSG${RESET}"
+      dependencies_status=1
+    fi
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
