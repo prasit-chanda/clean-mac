@@ -9,14 +9,13 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Version: 2.0.0-20250702-O8Q3F
+# Version: 2.0.0-20250702-P60AS
 # License: Apache-2.0
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
 # Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
 # ------------------------------------------------------------------------------
 
 # ───── Static Colors Variables ─────
-# Use standard, high-contrast ANSI codes for best visibility on both dark and light backgrounds
 BLUE=$'\e[94m'     # Bright Blue - Info/Action
 CYAN=$'\e[96m'     # Bright Cyan - General Info
 GREEN=$'\e[92m'    # Bright Green - Success
@@ -25,62 +24,43 @@ RESET=$'\e[0m'     # Reset all attributes
 YELLOW=$'\e[93m'   # Bright Yellow - Warning/Skip
 
 # ───── Global Variables ─────
-# First active interface
 ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
-# MAC address
-MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}')
-# Author info (dynamic)
+: ${ACTIVE_IF:="No active interface"}
 AUTHOR="Prasit Chanda"
-# CPU Info
 CPU=$(sysctl -n machdep.cpu.brand_string)
 DNS_SERVER="1.1.1.1"
-# Date info
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
-# Main disk
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
-# Disk size
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs)
-# IP address
-IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
-# Timestamp info
 TS=$(date +"%Y%m%d%H%M%S")
-# Log file info
 LF="clean-mac-${TS}.log"
-# Working directory info
 WD=$(pwd)
-# Log file path
 LOGFILE="${WD}/${LF}"
-# RAM Info
+if [[ "$ACTIVE_IF" != "No active interface" ]]; then
+  MAC=$(ifconfig "$ACTIVE_IF" 2>/dev/null | awk '/ether/ {print $2}')
+  : ${MAC:="MAC not found"}
+else
+  MAC="MAC not found"
+fi
 MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB"
-# Memory usage before cleanup
 MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
-# Memory before in MB
 MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 ))
-# Hardware Model
 MODEL=$(sysctl -n hw.model)
-# OS Build
 OS_BUILD=$(sw_vers -buildVersion)
-# OS Name
 OS_NAME=$(sw_vers -productName)
-# OS Version
 OS_VERSION=$(sw_vers -productVersion)
-# Initialize cleanup counters
 SCRIPT_START_TIME=$(date +%s)
-# Serial Number
 SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }')
-# Uptime
 UPTIME=$(uptime | cut -d ',' -f1 | xargs)
-# Flag to indicate if user exited early
 USER_EXITED=0
-# iOS device backup directory
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
-# Version info
-VER="2.0.0-20250702-O8Q3F"
-# Xcode DerivedData directory
+IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
+if [[ -z "$IP" ]]; then
+  IP="IP not found"
+fi
+VER="2.0.0-20250702-P60AS"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
-# Xcode DeviceSupport directory
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
-# List of protected cache folders (these will not be deleted)
 protected_caches=(
   "CloudKit"
   "com.apple.CloudPhotosConfiguration"
@@ -91,92 +71,115 @@ protected_caches=(
 
 # ───── Static Text Variables ─────
 CLEANING_CACHES_HEADER="Caches"
-CLEANING_CACHES_HINT="Because clearly, your system loves hoarding junk"
+CLEANING_CACHES_HINT="Because your Mac clearly enjoys hoarding nonsense"
 CLEANING_DOCKER_HEADER="Docker"
-CLEANING_DOCKER_HINT="Wiping all those ‘totally useful’ containers you forgot existed"
+CLEANING_DOCKER_HINT="Time to nuke those containers you totally meant to delete"
 CLEANING_DOWNLOADS_HEADER="Downloads"
-CLEANING_DOWNLOADS_HINT="Old downloads? What could possibly go wrong keeping them forever?"
+CLEANING_DOWNLOADS_HINT="Old installers, cat memes, and zip files you never opened"
 CLEANING_FILES_HEADER="Files"
-CLEANING_FILES_HINT="Temporary files: the digital equivalent of dust bunnies"
+CLEANING_FILES_HINT="Temporary junk that somehow thinks it's permanent"
 CLEANING_HOMEBREW_HEADER="Homebrew"
-CLEANING_HOMEBREW_HINT="Homebrew: great at installing stuff, even better at leaving leftovers"
+CLEANING_HOMEBREW_HINT="Installs fast, leaves crumbs everywhere. Let's clean that up"
 CLEANING_IOS_HEADER="Backups"
-CLEANING_IOS_HINT="Goodbye, ancient iPhone backups you didn’t know were still around"
+CLEANING_IOS_HINT="Say goodbye to iPhone backups older than your last breakup"
 CLEANING_LOGS_HEADER="Logs"
-CLEANING_LOGS_HINT="Because reading week-old logs is everyone’s idea of fun"
+CLEANING_LOGS_HINT="No one’s reading these unless you’re in IT support hell"
 CLEANING_MEMORY_HEADER="Memory"
-CLEANING_MEMORY_HINT="Let’s pretend this frees up memory magically (because it kinda does)"
+CLEANING_MEMORY_HINT="Let’s free up some RAM and pretend it makes things faster"
 CLEANING_TRASH_HEADER="Trash"
-CLEANING_TRASH_HINT="Your digital dumpster has feelings too — let's empty it"
+CLEANING_TRASH_HINT="Taking out digital garbage—because you won’t"
 CLEANING_XCODE_HEADER="Xcode"
-CLEANING_XCODE_HINT="Xcode loves clutter — time for a digital spring cleaning"
+CLEANING_XCODE_HINT="Xcode builds mountains of trash. Let’s demolish them"
+CLEANUP_MSG="Clean Recap"
+DD_NONE="  ● No Xcode DerivedData found to clean"
 DEPENDENCIES_HEADER="Dependencies"
-DEPENDENCIES_NOT_MSG="Nope, you're missing stuff — good luck"
-DEPENDENCIES_OK_MSG="Surprisingly, everything’s in place"
+DEPENDENCIES_NOT_MSG="Missing stuff. Good luck running anything"
+DEPENDENCIES_OK_MSG="Everything’s where it should be. That’s rare"
+DISK_SPACE_UNCHANGED_MSG="  Disk space didn’t budge. You might be *too* clean"
+DL_NONE="  ● Downloads are clean. Who even are you?"
+DOCKER_NONE="  ✖ No Docker. Skipped that drama"
 DOCKER_NOT_INSTALLED_MSG="Docker’s not here — guess we can skip that drama"
+DOCKER_OK="  ✓ Docker’s junk is gone"
 DOCKER_PRUNED_MSG="Docker junk has been sent to the void"
-DOWNLOADS_CLEAN_MSG="Wow, your Downloads folder is already clean!"
-DOWNLOADS_FILE_CLEANED_MSG="Files tossed from Downloads"
-HOMEBREW_CLEANED_MSG="Homebrew’s mess has been swept"
-HOMEBREW_CLEANUP_SKIPPED_MSG="Homebrew cleanup skipped — internet said nope"
-HOMEBREW_INSTALL_ATTEMPT_MSG="Attempting to install Homebrew"
-HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew installed successfully"
-HOMEBREW_INSTALL_FAILED_MSG="Homebrew installation failed. Please install it manually from https://brew.sh/"
-HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is here. Fancy."
-HOMEBREW_INSTALLED_MSG="Homebrew is installed. Shocking!"
-HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils is missing — blame Homebrew"
+DOWNLOADS_CLEAN_MSG="Wow, nothing to delete. Miracles happen"
+DOWNLOADS_FILE_CLEANED_MSG="Old downloads thrown out. You're welcome"
+DS_NONE="  ● Xcode DeviceSupport folder is clean too"
+HOMEBREW_CLEANED_MSG="Homebrew leftovers swept. That felt good"
+HOMEBREW_CLEANUP_SKIPPED_MSG="Skipped. No Homebrew or no internet. Not your day"
+HOMEBREW_CLEAN_HEADER_MSG="Cleaning Homebrew"
+HOMEBREW_INFO_HEADER_MSG="Homebrew Information"
+HOMEBREW_INSTALL_ATTEMPT_MSG="Trying to install Homebrew. Brace yourself."
+HOMEBREW_INSTALL_COREUTIL_ASK_MSG="Install coreutils via Homebrew? (y/n) "
+HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="Tried. Failed. coreutils still missing."
+HOMEBREW_INSTALL_FAILED_MSG="Nope. Homebrew install failed. Do it manually: https://brew.sh/"
+HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew is in. Shocking, right?"
+HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="No coreutils. You’ll need to DIY it"
+HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is installed. You fancy now"
+HOMEBREW_INSTALLED_MSG="Homebrew's already lurking in your system"
+HOMEBREW_NONE="  ✖ Couldn’t clean Homebrew. It's either missing or offline"
+HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils is missing—blame Homebrew"
 HOMEBREW_NOT_INSTALLED_MSG="No Homebrew? Who even are you?"
-HOMEBREW_INSTALL_COREUTIL_ASK_MSG="Install coreutils via Homebrew? (y/n): "
-HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="Failed to install coreutils"
-HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="coreutils installation failed. Please install it manually."
-INTERNET_AVAILABLE_MSG="✓ Internet’s alive and actually working"
-INTERNET_UNAVAILABLE_MSG="✖ Internet’s either dead or having a meltdown"
-IOS_BACKUP_DIR_NONE_MSG="Where even is your backup folder?"
-IOS_BACKUP_FOUND_MSG="Found your old iOS baggage"
-IOS_BACKUP_NONE_MSG="No dusty iOS backups hanging around"
-IOS_BACKUP_REMOVED_MSG="Deleted your ancient iOS ghosts"
-LOG_CLEAN_MSG="Logs folder is already squeaky clean"
-LOG_FILE_CLEANED_MSG="Old logs have been quietly destroyed"
-NO_FILES_TO_CLEAN_MSG="Well, you’re actually tidy for once"
-NO_MOUNTED_VOLUME_MSG="No extra volumes found to snoop into"
-NOT_ZSH_MSG="Wrong shell, genius — this needs zsh"
-OSASCRIPT_AVAILABLE_MSG="osascript is good to go"
-OSASCRIPT_NOT_INSTALLED_MSG="osascript missing — it’s like forgetting Siri"
-PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) said 'go for it' — here we go"
-PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) chickened out — exiting"
-PROMPT_USER_CONSENT_MSG="%F{11}Care to let this script work its magic? (y/n) %f"
-PROMPT_VALIDATE_MSG="Yes or no. This isn’t a riddle. (y/n)"
-PURGE_CLEANED_MSG="RAM shaken and stirred"
-PURGE_NOT_AVAILABLE_MSG="No 'purge' command? Great. Skipping"
+HOMEBREW_OK="  ✓ Homebrew mess cleaned up"
+INTERNET_AVAILABLE="✓ Active"
+INTERNET_AVAILABLE_MSG="  ✓ Internet works. Celebrate the small things"
+INTERNET_UNAVAILABLE="✖ Down"
+INTERNET_UNAVAILABLE_MSG="  ✖ Internet’s down. So is your productivity"
+IOS_BACKUP_DIR_NONE_MSG="What backup folder? It doesn’t even exist"
+IOS_BACKUP_FOUND_MSG="Look at you, hiding those old iOS backups"
+IOS_BACKUP_NONE_MSG="No iOS junk found. Gold star"
+IOS_BACKUP_REMOVED_MSG="Old backups deleted. Your phone won’t miss them"
+IOS_NONE="  ● No iOS baggage found. You’re evolving"
+LOG_CLEAN_MSG="Logs already cleaned. Suspiciously efficient"
+LOG_FILE_CLEANED_MSG="Old logs destroyed. We made history disappear"
+LOG_NONE="  ● No old logs. This feels suspicious"
+MEM_NONE="  ● Nothing to free up — RAM’s chill"
+MEM_OK="  ✓ Memory cleared like a champ"
+MEMORY_SPACE_UNCHANGED_MSG="No change in memory space. Already efficient, or just stubborn"
+NO_FILES_TO_CLEAN_MSG="You’re oddly tidy today. Nice"
+NO_MOUNTED_VOLUME_MSG="No extra volumes found. Boring"
+NOT_ZSH_MSG="You're not using Zsh? Rookie move"
+OSASCRIPT_AVAILABLE_MSG="osascript is available. Let’s abuse it"
+OSASCRIPT_INSTALL_ASK_MSG="Install osascript via Homebrew? (y/n) "
+OSASCRIPT_INSTALL_CANT_MSG="osascript can’t be installed automatically. You get to suffer"
+OSASCRIPT_INSTALL_FAILED_MSG="Failed to install osascript. You’re on your own"
+OSASCRIPT_INSTALL_SKIPPED_MSG="Skipped osascript install. Manual mode it is"
+OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed. Cue applause"
+OSASCRIPT_NOT_INSTALLED_MSG="osascript missing — this Mac is extra"
+PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) approved this chaos. Proceeding"
+PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) backed out. Quitting politely"
+PROMPT_USER_CONSENT_MSG="%F{11}Let this script wreak some havoc? (y/n) %f"
+PROMPT_VALIDATE_MSG="It’s yes or no. Not rocket science"
+PURGE_CLEANED_MSG="RAM cleared. Your Mac just sighed in relief"
+PURGE_NOT_AVAILABLE_MSG="'purge' command missing. How 2009 of you"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
-SCRIPT_DESCRIPTION="One script to delete it all — caches, logs, downloads, and the guilt of neglect"
-SCRIPT_EXIT_MSG=" ● Press ⌃ + C anytime if your courage fails you"
-SCRIPT_INTERNET_MSG=" ● This script likes internet. Don't deny it"
-SCRIPT_START_MSG="Launching clean-mac — brace yourself"
-SCRIPT_SUDO_MSG=" ● Might need your password — no, not for evil"
-SCRIPT_TERMINAL_MSG=" ● Pro tip: Run this in Terminal, not Notes.app"
+SCRIPT_DESCRIPTION="One script to wipe it all — caches, logs, downloads, guilt"
+SCRIPT_EXIT_MSG=" ● Press ⌃ + C anytime if you lose your nerve"
+SCRIPT_INTERNET_MSG=" ● Needs internet. Don’t argue"
+SCRIPT_START_MSG="Running clean-mac — this might hurt"
+SCRIPT_SUDO_MSG=" ● Might ask for your password. Don’t panic"
+SCRIPT_TERMINAL_MSG=" ● Run this in macOS native Terminal, not Notes. Please"
+SUMMARY_SUB_TITLE_1_MSG="System Snapshot"
+SUMMARY_SUB_TITLE_2_MSG="What Got Nuked"
+SUMMARY_SUB_TITLE_3_MSG="Aftermath"
 SYSTEM_DETAILS_HEADER="System"
-SYSTEM_TRASH_CLEAN_MSG="System Trash already sparkling"
-SYSTEM_TRASH_CLEANED_MSG="System Trash successfully vaporized"
-SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="Can’t touch System Trash — macOS says nope"
-TRASH_CLEAN_MSG="User Trash? Empty as your new year's resolutions"
-TRASH_FILE_CLEANED_MSG="Files deleted, no funeral held"
-TRASH_USER_CLEANED_MSG="User Trash has been taken out"
-TRASH_VOLUME_CLEAN_MSG="That volume’s Trash is already empty"
-TRASH_VOLUME_CLEANED_MSG="Took the trash out from this volume"
-UNSUPPORTED_OS_MSG="✖ Nice try — this only works on macOS"
-USER_CACHE_CLEAN_MSG="User cache is already empty — shocking"
-USER_CACHE_CLEANED_MSG="User cache cleared like a champ"
-XCODE_DERIVED_CLEANED_MSG="DerivedData? Poof. Gone"
-XCODE_DERIVED_NONE_MSG="No DerivedData here — you’re safe"
-XCODE_DEVICE_CLEANED_MSG="Xcode device leftovers cleaned"
-XCODE_DEVICE_NONE_MSG="No devices to clean — what a surprise"
-OSASCRIPT_INSTALL_ASK_MSG="Install osascript via Homebrew? (y/n): "
-OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed successfully"
-OSASCRIPT_INSTALL_FAILED_MSG="Failed to install osascript. Please install it manually"
-OSASCRIPT_INSTALL_SKIPPED_MSG="osascript installation skipped. Please install it manually"
-OSASCRIPT_INSTALL_CANT_MSG="osascript cannot be installed automatically. Please install it manually"
- 
+SYSTEM_TRASH_CLEAN_MSG="System Trash is already pristine. Wow"
+SYSTEM_TRASH_CLEANED_MSG="System Trash obliterated"
+SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="macOS says no. Can't touch System Trash"
+TRASH_CLEAN_MSG="User Trash emptied. Like your will to adult"
+TRASH_FILE_CLEANED_MSG="Deleted. No tears shed"
+TRASH_NONE="  ● Trash is already empty. Have you been cleaning?"
+TRASH_USER_CLEANED_MSG="Trash taken out like it’s garbage day"
+TRASH_VOLUME_CLEAN_MSG="Volume Trash is clean. For now"
+TRASH_VOLUME_CLEANED_MSG="Volume Trash removed. Sweet emptiness"
+UNSUPPORTED_OS_MSG="✖ Nope. This only runs on macOS. Nice try"
+USER_CACHE_CLEAN_MSG="User cache already empty. Who are you?"
+USER_CACHE_CLEANED_MSG="User cache wiped. That felt productive"
+USER_CACHE_NONE="  ● No junk in user cache. Color me surprised"
+XCODE_DERIVED_CLEANED_MSG="DerivedData gone. So much pointless build junk"
+XCODE_DERIVED_NONE_MSG="Nothing to clean. Shocking for Xcode"
+XCODE_DEVICE_CLEANED_MSG="Device leftovers cleaned. So long, simulators"
+XCODE_DEVICE_NONE_MSG="No devices to clean. Go you"
+
 # ───── Custom Methods ─────
 
 # This function asks the user for consent to continue
@@ -456,7 +459,7 @@ print_hints() {
 # Function to show Homebrew information (summary)
 print_brew_info() {
   # Collect Homebrew information
-  echo "${BLUE}Fetching Homebrew information${RESET}"
+  echo "${BLUE}$HOMEBREW_INFO_HEADER_MSG${RESET}"
   # simple facts
   local brew_path=${commands[brew]}
   local brew_version=$(brew --version | head -n1)
@@ -495,7 +498,7 @@ print_brew_info() {
   echo "Outdated Formulae     : $outdated_formulae"
   echo "Outdated Casks        : $outdated_casks"
   echo "Last Update           : $last_update"
-  echo "Disk Usage (Cellar)   : ${disk_usage:-Unknown}"
+  echo "Disk Usage    : ${disk_usage:-Unknown}"
   echo "Brew Doctor Status    : $doctor_status"
   echo "Brew Services Running : $services_running"
   echo "${RESET}"
@@ -505,9 +508,9 @@ print_brew_info() {
 print_clean_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
-    fancy_title_box "Clean Recap"
+    fancy_title_box "$CLEANUP_MSG"
     echo ""
-    echo "${CYAN}System Snapshot${RESET}${GREEN}"
+    echo "${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREEN}"
     echo ""
     echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
     echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
@@ -515,40 +518,39 @@ print_clean_summary() {
     echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
     echo "  Uptime  $(get_uptime)"
     echo "${RESET}"
-    echo "${CYAN}What Changed${RESET}"
+    echo "${CYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}"
     echo ""
     check_internet
     [[ $user_caches_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
-      echo "${YELLOW}  ● No junk found in user cache, nothing to clean up ${RESET}"
+      echo "${YELLOW}$USER_CACHE_NONE${RESET}"
     [[ $logs_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
-      echo "${YELLOW}  ● No outdated logs detected, all set ${RESET}"
+      echo "${YELLOW}$LOG_NONE${RESET}"
     [[ $trash_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ Trash cleaned ($trash_cleaned files) ${RESET}" || \
-      echo "${YELLOW}  ● No files found in Trash, it's squeaky clean ${RESET}"
+      echo "${YELLOW}$TRASH_NONE${RESET}"
     [[ $downloads_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
-      echo "${YELLOW}  ● Downloads folder looks tidy, no old files to delete ${RESET}"
+      echo "${YELLOW}$DL_NONE${RESET}"
     [[ $homebrew_cleaned == 1 ]] && \
-      echo "${GREEN}  ✓ Homebrew cleanup complete ${RESET}" || \
-      echo "${RED}  ✖ Homebrew not cleaned due to no install or no internet ${RESET}"
+      echo "${GREEN}$HOMEBREW_OK${RESET}" || \
+      echo "${RED}$HOMEBREW_NONE${RESET}"
     [[ $memory_purged == 1 ]] && \
-      echo "${GREEN}  ✓ Cleared unused memory ${RESET}" || \
-      echo "${YELLOW}  ● Memory usage is already clean and efficient ${RESET}"
+      echo "${GREEN}$MEM_OK${RESET}" || \
+      echo "${YELLOW}$MEM_NONE${RESET}"
     [[ ${ios_backups_cleaned:-0} -gt 0 ]] && \
       echo "${GREEN}  ✓ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
-      echo "${YELLOW}  ● No iOS backups found to clean ${RESET}"
+      echo "${YELLOW}$IOS_NONE${RESET}"
     [[ ${derived_count:-0} -gt 0 ]] && \
       echo "${GREEN}  ✓ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
-      echo "${YELLOW}  ● No Xcode DerivedData found to clean ${RESET}"
+      echo "${YELLOW}$DD_NONE${RESET}"
     [[ ${device_support_count:-0} -gt 0 ]] && \
       echo "${GREEN}  ✓ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
-      echo "${YELLOW}  ● No Xcode DeviceSupport found to clean ${RESET}"
+      echo "${YELLOW}$DS_NONE${RESET}"
     [[ ${docker_cleaned:-0} -eq 1 ]] && \
-      echo "${GREEN}  ✓ Docker system pruned ${RESET}" || \
-      echo "${RED}  ✖ Docker doesn’t seem to be installed on your system ${RESET}"
-
+      echo "${GREEN}$DOCKER_OK${RESET}" || \
+      echo "${RED}$DOCKER_NONE${RESET}"
     # Results section
     # Measure memory and disk space freed
     space_after=$(get_free_space)
@@ -557,27 +559,23 @@ print_clean_summary() {
     MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
-
     echo ""
-    echo "${CYAN}Cleanup Outcome${RESET}"
+    echo "${CYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}"
     echo ""
-
     # Print memory freed
     if (( MEM_FREED_MB > 0 )); then
       echo "${GREEN}  RAM Cleaned  $MEM_FREED_MB Megabyte(MB)${RESET}"
     else
-      echo "${YELLOW}  No additional RAM freed, possibly already optimized${RESET}"
+      echo "${YELLOW}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
     fi
-
     # Print disk space freed
     if (( space_freed > 0 )); then
       echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}"
     elif (( space_freed < 0 )); then
-      echo "${YELLOW}  Disk space unchanged, possibly already optimized${RESET}"
+      echo "${YELLOW}$DISK_SPACE_UNCHANGED_MSG${RESET}"
     else
-      echo "${YELLOW}  Disk space unchanged, possibly already optimized${RESET}"
+      echo "${YELLOW}$DISK_SPACE_UNCHANGED_MSG${RESET}"
     fi
-
     # Add execution time
     SCRIPT_END_TIME=$(date +%s)
     if [[ -n "$SCRIPT_START_TIME" && -n "$SCRIPT_END_TIME" ]]; then
@@ -590,14 +588,12 @@ print_clean_summary() {
     fi
     echo ""
   fi
-
   # Print Footer Contents
   echo "Log File $LOGFILE"
   echo "Script Version $VER"
   echo ""
   fancy_text_header " ${AUTHOR} © $(date +%Y) "
   echo ""
-
   # Flush filesystem buffers to ensure all changes are written to disk
   sync
   # Close file descriptors (for tee subshells)
@@ -653,16 +649,16 @@ exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}"))
 # Ensure the script is run with zsh
 if [[ -z "$ZSH_VERSION" ]]; then
   echo "${RED}$NOT_ZSH_MSG${RESET}" >&2
-  USER_EXITED=1       # Set the flag so summary knows user exited
-  print_clean_summary # Print summary (will skip results if exited)      
+  USER_EXITED=1
+  print_clean_summary
   exit 0
 fi
- 
+
 # Ensure the OS is macOS
 if [[ "$(uname)" != "Darwin" ]]; then
   echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
-  USER_EXITED=1       # Set the flag so summary knows user exited
-  print_clean_summary # Print summary (will skip results if exited)
+  USER_EXITED=1
+  print_clean_summary
   exit 0
 fi
 
@@ -698,6 +694,11 @@ echo "OS        $OS_NAME"
 echo "Version   $OS_VERSION"
 echo "Build     $OS_BUILD"
 echo "Uptime    $UPTIME"
+if [[ "$ACTIVE_IF" == "No active interface" ]]; then
+  echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREEN}"
+else
+  echo "Internet  $INTERNET_AVAILABLE"
+fi
 echo "NetIface  $ACTIVE_IF"
 echo "IP        $IP"
 echo "MAC       $MAC"
