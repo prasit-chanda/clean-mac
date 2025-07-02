@@ -16,9 +16,9 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 
 # ───── Static Colors Variables ─────
-BLUE=$'\e[94m'     # Bright Blue - Info/Action
 CYAN=$'\e[96m'     # Bright Cyan - General Info
 GREEN=$'\e[92m'    # Bright Green - Success
+LGREY=$'\e[90m'    # Light Grey - Info/Action
 RED=$'\e[91m'      # Bright Red - Error/Failure
 RESET=$'\e[0m'     # Reset all attributes
 YELLOW=$'\e[93m'   # Bright Yellow - Warning/Skip
@@ -223,7 +223,7 @@ cleanup() {
 clean_temp_files() {
   local dir="$1"
   local description="$2"
-  echo "${BLUE}Cleaning $description${RESET}"
+  echo "${LGREY}Cleaning $description${RESET}"
   # Count files before deletion
   local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
   if [[ $files_count -gt 0 ]]; then
@@ -355,7 +355,7 @@ fancy_line_divider() {
   while [[ ${(L)#line} -lt $width ]]; do
     line+="$char"
   done
-  #print -Pn "%F{blue}"
+  #print -Pn "%F{LGREY}"
   print -r -- "$line"
 }
 
@@ -370,7 +370,7 @@ fancy_title_box() {
   for line in "${lines[@]}"; do
     (( ${#line} > max_length )) && max_length=${#line}
   done
-  #print -Pn "%F{blue}"
+  #print -Pn "%F{LGREY}"
   local box_width=$((max_length + padding * 2))
   local border_top="╔$(printf '═%.0s' $(seq 1 $box_width))╗"
   local border_bottom="╚$(printf '═%.0s' $(seq 1 $box_width))╝"
@@ -390,7 +390,7 @@ fancy_text_header() {
   local label="$1"
   local total_width=25
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
-  #print -Pn "%F{blue}"
+  #print -Pn "%F{LGREY}"
   # Print a centered header with '=' padding
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
@@ -463,7 +463,7 @@ print_hints() {
 # Function to show Homebrew information (summary)
 print_brew_info() {
   # Collect Homebrew information
-  echo "${BLUE}$HOMEBREW_INFO_HEADER_MSG${RESET}"
+  echo "${LGREY}$HOMEBREW_INFO_HEADER_MSG${RESET}"
   # simple facts
   local brew_path=${commands[brew]}
   local brew_version=$(brew --version | head -n1)
@@ -502,7 +502,7 @@ print_brew_info() {
   echo "Outdated Formulae     : $outdated_formulae"
   echo "Outdated Casks        : $outdated_casks"
   echo "Last Update           : $last_update"
-  echo "Disk Usage    : ${disk_usage:-Unknown}"
+  echo "Disk Usage            : ${disk_usage:-Unknown}"
   echo "Brew Doctor Status    : $doctor_status"
   echo "Brew Services Running : $services_running"
   echo "${RESET}"
@@ -734,7 +734,7 @@ find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
   if [[ ${protected_caches[(ie)$dirname]} -le ${#protected_caches} ]]; then
     echo "${YELLOW}Skipping Protected Cache Folder: $dir${RESET}"
   else
-    echo "${BLUE}Cleaning User Cache: $dir${RESET}"
+    echo "${LGREY}Cleaning User Cache: $dir${RESET}"
     sudo rm -rf "${dir:?}"/* 2>/dev/null || echo "${YELLOW}Warning: Failed to Clean $dir${RESET}"
     ((counter++))
   fi
@@ -753,7 +753,7 @@ print_hints "$CLEANING_IOS_HINT"
 if [[ -d "$IOS_BACKUP_DIR" ]]; then
   backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
   if (( backup_count > 0 )); then
-    echo "${BLUE}$IOS_BACKUP_FOUND_MSG $backup_count iOS device backup(s)${RESET}"
+    echo "${LGREY}$IOS_BACKUP_FOUND_MSG $backup_count iOS device backup(s)${RESET}"
     sudo rm -rf "$IOS_BACKUP_DIR"/*
     echo "${GREEN}$IOS_BACKUP_REMOVED_MSG${RESET}"
     ios_backups_cleaned=$backup_count
@@ -815,7 +815,7 @@ if (( ${#old_logs[@]} == 0 )); then
   logs_cleaned=0
 else
   for file in "${old_logs[@]}"; do
-    echo "${BLUE}Cleaning LOG File: $file${RESET}"
+    echo "${LGREY}Cleaning LOG File: $file${RESET}"
     sudo rm -f "$file"
   done
   echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
@@ -832,7 +832,7 @@ if (( ${#trash_files[@]} == 0 )); then
   echo "${YELLOW}$TRASH_CLEAN_MSG${RESET}"
 else
   for file in "${trash_files[@]}"; do
-    echo "${BLUE}Cleaning File: $file${RESET}"
+    echo "${LGREY}Cleaning File: $file${RESET}"
   done
   osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
   echo "${GREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
@@ -888,7 +888,7 @@ if (( ${#old_files[@]} == 0 )); then
   downloads_cleaned=0
 else
   for file in "${old_files[@]}"; do
-    echo "${BLUE}Cleaning File: $file${RESET}"
+    echo "${LGREY}Cleaning File: $file${RESET}"
     rm -f "$file"
   done
   echo "${GREEN}${#old_files[@]} $DOWNLOADS_FILE_CLEANED_MSG${RESET}"
@@ -903,7 +903,7 @@ print_hints "$CLEANING_HOMEBREW_HINT"
 if ping -c 1 -W 2 $DNS_SERVER >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
     print_brew_info
-    echo "${BLUE}Cleaning Homebrew${RESET}"
+    echo "${LGREY}Cleaning Homebrew${RESET}"
     brew cleanup -s
     echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
     homebrew_cleaned=1
