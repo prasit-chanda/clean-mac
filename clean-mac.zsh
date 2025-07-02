@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Version: 2.0.0-20250702-P60AS
+# Version: 2.1.0-20250702-DVK13
 # License: Apache-2.0
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
 # Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
@@ -32,7 +32,7 @@ DNS_SERVER="1.1.1.1"
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs)
-TS=$(date +"%Y%m%d%H%M%S")
+TS=$(date +"%s")
 LF="clean-mac-${TS}.log"
 WD=$(pwd)
 LOGFILE="${WD}/${LF}"
@@ -58,7 +58,7 @@ IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
 if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
-VER="2.0.0-20250702-P60AS"
+VER="2.1.0-20250702-DVK13"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 protected_caches=(
@@ -160,6 +160,7 @@ SCRIPT_DESCRIPTION="One script to wipe it all — caches, logs, downloads, guilt
 SCRIPT_EXIT_MSG=" ● Press ⌃ + C anytime if you lose your nerve"
 SCRIPT_INTERNET_MSG=" ● Needs internet. Don’t argue"
 SCRIPT_START_MSG="Running clean-mac — this might hurt"
+SCRIPT_SUDO_FAIL_MSG="✖ No sudo, no glory. Exiting script before things get messy"
 SCRIPT_SUDO_MSG=" ● Might ask for your password. Don’t panic"
 SCRIPT_TERMINAL_MSG=" ● Run this in macOS native Terminal, not Notes. Please"
 SUMMARY_SUB_TITLE_1_MSG="System Snapshot"
@@ -175,6 +176,7 @@ TRASH_NONE="  ● Trash is already empty. Have you been cleaning?"
 TRASH_USER_CLEANED_MSG="Trash taken out like it’s garbage day"
 TRASH_VOLUME_CLEAN_MSG="Volume Trash is clean. For now"
 TRASH_VOLUME_CLEANED_MSG="Volume Trash removed. Sweet emptiness"
+ROOT_WARNING_MSG="Oh, running this as root? Bold choice\nLiving dangerously, are we? \nThat's a hard no—exiting now before something explodes"
 UNSUPPORTED_OS_MSG="✖ Nope. This only runs on macOS. Nice try"
 USER_CACHE_CLEAN_MSG="User cache already empty. Who are you?"
 USER_CACHE_CLEANED_MSG="User cache wiped. That felt productive"
@@ -203,7 +205,7 @@ ask_user_consent() {
         echo ""
         USER_EXITED=1       # Set the flag so summary knows user exited
         print_clean_summary # Print summary (will skip results if exited)
-        exit 0
+        exit 1
         ;;
       *)
         echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
@@ -644,28 +646,41 @@ print_ram_info() {
   echo "${RESET}"
 }
 
+# ───── Check Runtime Environment ─────
+
+# Check if running in zsh console
+if [[ -z "$ZSH_VERSION" ]]; then
+  echo ""
+  echo "${RED}$NOT_ZSH_MSG${RESET}" >&2
+  echo ""
+  exit 1
+fi
+
+# Check if running in macOS
+if [[ "$(uname)" != "Darwin" ]]; then
+  echo ""
+  echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
+  echo ""
+  exit 1
+fi
+
+# Warn if running as root (not recommended)
+if [[ "$EUID" -eq 0 ]]; then
+  echo ""
+  echo "${RED}$ROOT_WARNING_MSG${RESET}"  >&2
+  echo ""
+  exit 1
+fi
+
 # ───── Script Starts ─────
 clear
+
+# Measure free disk space before cleanup
+space_before=$(get_free_space)
 
 # Create log file and redirect output
 exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
      2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
-
-# Ensure the script is run with zsh
-if [[ -z "$ZSH_VERSION" ]]; then
-  echo "${RED}$NOT_ZSH_MSG${RESET}" >&2
-  USER_EXITED=1
-  print_clean_summary
-  exit 0
-fi
-
-# Ensure the OS is macOS
-if [[ "$(uname)" != "Darwin" ]]; then
-  echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
-  USER_EXITED=1
-  print_clean_summary
-  exit 0
-fi
 
 # Ensure the script is run with sudo privileges
 trap cleanup EXIT INT TERM
@@ -715,14 +730,19 @@ check_dependencies
 # Ask user for consent to continue (can exit here)
 ask_user_consent
 
-# Ask for sudo once at the start (will prompt for password if needed)
+# Prompt for sudo and handle interruption
 sudo -v
-
-# Keep sudo session alive in the background
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-
-# Measure free disk space before cleanup
-space_before=$(get_free_space)
+if ! sudo -v; then
+  echo ""
+  echo "${RED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
+  echo ""
+  USER_EXITED=1
+  print_clean_summary
+  exit 1
+else
+  # Keep sudo alive in the background to avoid password prompts
+  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+fi
 
 # Step 1: Clear User Caches
 fancy_text_header "$CLEANING_CACHES_HEADER"
@@ -933,7 +953,6 @@ fi
 echo ""
 
 # Print the cleanup summary at the end
-SCRIPT_END_TIME=$(date +%s)
 print_clean_summary
 
 # Ensure all background jobs are killed on exit
