@@ -452,7 +452,7 @@ human_readable_space() {
 print_hints() {
   local words=(${(z)1})  # split message into words
   local i=1
-  print -Pn "\n%F{cyan} ⓘ "
+  echo -ne "${CYAN} 𝓲 "
   for word in $words; do
     print -n -P "$word "
     (( i++ % 20 == 0 )) && print
