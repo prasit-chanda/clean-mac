@@ -679,8 +679,11 @@ clear
 space_before=$(get_free_space)
 
 # Create log file and redirect output
-exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
-     2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
+# exec > >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
+#   2> >(stdbuf -oL tee >(stdbuf -oL sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
+
+exec > >(tee >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' > "${LF}")) \
+  2> >(tee >(sed 's/\x1B\[[0-9;]*[JKmsu]//g' >> "${LF}") >&2)
 
 # Ensure the script is run with sudo privileges
 trap cleanup EXIT INT TERM
