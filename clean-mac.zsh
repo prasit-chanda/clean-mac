@@ -284,6 +284,18 @@ clean_homebrew() {
   fi
 }
 
+# This function cleans RAM
+clean_memory_ram() {
+  if command -v purge >/dev/null 2>&1; then
+    sudo purge >/dev/null 2>&1 && sleep 1
+    echo "${GREEN}${PURGE_CLEANED_MSG}${RESET}"
+    return 0
+  else
+    echo "${RED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
+    return 1
+  fi
+}
+
 # This fuction clean old downloads
 clean_old_downloads() {
   local old_files downloads_cleaned
@@ -941,7 +953,7 @@ if ! sudo -v; then
   exit 1
 else
   # Keep sudo alive in the background to avoid password prompts
-  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+  while true; do sudo -n true; sleep 1200; kill -0 "$$" || exit; done 2>/dev/null &
 fi
 
 # Step 1: Clear User Caches
@@ -1003,15 +1015,7 @@ echo ""
 fancy_text_header "$CLEANING_MEMORY_HEADER"
 print_hints "$CLEANING_MEMORY_HINT"
 print_ram_info
-if command -v purge >/dev/null 2>&1; then
-    sudo purge
-    sleep 1
-    echo "${GREEN}$PURGE_CLEANED_MSG${RESET}"
-    memory_purged=1
-else
-    echo "${RED}$PURGE_NOT_AVAILABLE_MSG${RESET}"
-    memory_purged=0
-fi
+clean_memory_ram
 echo ""
 
 # Print the cleanup summary at the end
