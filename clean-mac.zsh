@@ -464,49 +464,28 @@ print_hints() {
 
 # Function to show Homebrew information (summary)
 print_brew_info() {
-  # Collect Homebrew information
   echo "${LGREY}$HOMEBREW_INFO_HEADER_MSG${RESET}"
-  # simple facts
-  local brew_path=${commands[brew]}
-  local brew_version=$(brew --version | head -n1)
-  # one JSON hit for everything installed 
-  local json_installed
-  json_installed=$(brew info --json=v2 --installed)          
-  # you need jq (brew install jq) — it’s orders of magnitude faster than 4–5 more brew calls
-  local installed_formulae=$(jq '.formulae | length' <<<"$json_installed")
-  local installed_casks=$(jq '.casks    | length' <<<"$json_installed")
-  # one JSON hit for everything outdated
-  local json_outdated
-  json_outdated=$(brew outdated --json=v2)                  
-  local outdated_formulae=$(jq '.formulae | length' <<<"$json_outdated")
-  local outdated_casks=$(jq '.casks    | length' <<<"$json_outdated")
-  # last Git update (cheap)
-  # Just stat the FETCH_HEAD rather than walking history
-  local brew_repo=$(brew --repository)
-  local fetch_head="$brew_repo/.git/FETCH_HEAD"
-  local last_update
-  local last_update=$(git -C "$(brew --repo)" log -1 --format="%cd" --date=short 2>/dev/null || echo "Unavailable")
-  # disk usage  
-  local cellar_path=$(brew --cellar)
-  local disk_usage=$(du -sh "$cellar_path" 2>/dev/null | awk '{print $1}')
-  # health check
-  # `brew doctor --quiet` exits 0 if OK, 1 if warnings — no parsing needed
-  brew doctor --quiet &>/dev/null
-  local doctor_status=$([[ $? -eq 0 ]] && echo "OK" || echo "Warnings detected")
-  # Brew services running count
-  local services_running=$(brew services list 2>/dev/null | awk '$2 == "started" {count++} END {print count+0}')
-  # Print the Homebrew summary
+  local b=$(brew --version | head -n1)
+  local p=${commands[brew]}
+  local r=$(brew --repository)
+  local c=$(brew --cellar)
+  local u=$(git -C "$r" log -1 --format="%cd" --date=short 2>/dev/null); [[ -z "$u" ]] && u="no clue"
+  local j1=$(brew info --json=v2 --installed); local f=$(jq '.formulae | length' <<<"$j1"); local ck=$(jq '.casks | length' <<<"$j1")
+  local j2=$(brew outdated --json=v2); local of=$(jq '.formulae | length' <<<"$j2"); local oc=$(jq '.casks | length' <<<"$j2")
+  local duo=$(du -sh "$c" 2>/dev/null | awk '{print $1}'); [[ -z "$duo" ]] && duo="??"
+  local d; brew doctor --quiet &>/dev/null && d="OK" || d="Doctor says brew is sick. Shocker"
+  local srv=$(brew services list 2>/dev/null | grep started | wc -l | tr -d ' '); [[ -z "$srv" ]] && srv=0
   echo "${GREEN}"
-  echo "Path                  : $brew_path"
-  echo "Version               : $brew_version"
-  echo "Installed Formulae    : $installed_formulae"
-  echo "Installed Casks       : $installed_casks"
-  echo "Outdated Formulae     : $outdated_formulae"
-  echo "Outdated Casks        : $outdated_casks"
-  echo "Last Update           : $last_update"
-  echo "Disk Usage            : ${disk_usage:-Unknown}"
-  echo "Brew Doctor Status    : $doctor_status"
-  echo "Brew Services Running : $services_running"
+  echo "Path                  : $p"
+  echo "Version               : $b"
+  echo "Installed Formulae    : $f"
+  echo "Installed Casks       : $ck"
+  echo "Outdated Formulae     : $of"
+  echo "Outdated Casks        : $oc"
+  echo "Last Update           : $u"
+  echo "Disk Usage            : $duo"
+  echo "Doctor Status         : $d"
+  echo "Services Running      : $srv"
   echo "${RESET}"
 }
 
