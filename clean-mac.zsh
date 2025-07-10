@@ -381,6 +381,26 @@ clean_ios_backups() {
   fi
 }
 
+# This function cleans old System Logs older than 7 days
+clean_old_logs() {
+  local old_logs logs_cleaned
+  echo "${CYAN}Scanning for system logs older than 7 days${RESET}"
+  old_logs=("${(@f)$(sudo find /private/var/log -type f -mtime +7 2>/dev/null)}")
+  # Remove empty entries (if any)
+  old_logs=(${old_logs:#""})
+  if (( ${#old_logs[@]} == 0 )); then
+    echo "${YELLOW}LOG is clean — $NO_FILES_TO_CLEAN_MSG${RESET}"
+    logs_cleaned=0
+  else
+    for file in "${old_logs[@]}"; do
+      echo "${LGREY}Cleaning LOG File: $file${RESET}"
+      sudo rm -f -- "$file"
+    done
+    echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
+    logs_cleaned=${#old_logs[@]}
+  fi
+}
+
 # This function cleans user caches older than 3 days
 clean_user_caches() { 
   local cache_dir=~/Library/Caches
@@ -872,19 +892,7 @@ echo ""
 # Step 5: Clean old System Logs older than 7 days
 fancy_text_header "$CLEANING_LOGS_HEADER"
 print_hints "$CLEANING_LOGS_HINT"
-old_logs=("${(@f)$(sudo find "/private/var/log" -type f -mtime +7 2>/dev/null)}")
-old_logs=(${old_logs:#""})  # Clean empty entries
-if (( ${#old_logs[@]} == 0 )); then
-  echo "${YELLOW}LOG is clean — $NO_FILES_TO_CLEAN_MSG${RESET}"
-  logs_cleaned=0
-else
-  for file in "${old_logs[@]}"; do
-    echo "${LGREY}Cleaning LOG File: $file${RESET}"
-    sudo rm -f "$file"
-  done
-  echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
-  logs_cleaned=${#old_logs[@]}
-fi
+clean_old_logs
 echo ""
 
 # Step 6: Empty Trash/Bin for user, root, and all mounted volumes
