@@ -51,6 +51,7 @@ OS_NAME=$(sw_vers -productName)
 OS_VERSION=$(sw_vers -productVersion)
 SCRIPT_START_TIME=$(date +%s)
 SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }')
+UC_FILE_COUNT=0
 UPTIME=$(uptime | cut -d ',' -f1 | xargs)
 USER_EXITED=0
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
@@ -344,6 +345,65 @@ check_internet() {
   else
     echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
     return 1
+  fi
+}
+
+# This function cleans user caches older than 3 days
+clean_user_caches() { 
+  local cache_dir=~/Library/Caches
+  local dir dirname
+  local custom_caches=(
+    "$HOME/Library/Application Support/Code/Cache"
+    "$HOME/Library/Application Support/Slack/Service Worker/CacheStorage"
+    "$HOME/Library/Application Support/Google/Chrome/Default/Cache"
+    "$HOME/Library/Safari/Favicon Cache"
+    "$HOME/Library/WebKit"
+  )
+   # Main User Cache: ~/Library/Caches
+  echo "${CYAN}Scanning user caches...${RESET}"
+  find "$cache_dir" -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
+    dirname=$(basename "$dir")
+    # Skip protected cache folders
+    if [[ " ${protected_caches[*]} " == *" $dirname "* ]]; then
+      echo "${YELLOW}Skipping Protected Cache Folder: $dir${RESET}"
+    else
+      echo "${LGREY}Cleaning User Cache: $dir${RESET}"
+      rm -rf "${dir:?}/"* 2>/dev/null || echo "${YELLOW}Warning: Failed to clean $dir${RESET}"
+      ((UC_FILE_COUNT++))
+    fi
+  done
+  # Sandboxed App Cachees: ~/Library/Containers
+  containers_cache_root="$HOME/Library/Containers"
+  if [[ -d "$containers_cache_root" ]]; then
+    echo "${CYAN}Scanning sandboxed app caches${RESET}"
+    find "$containers_cache_root" -type d -path "*/Data/Library/Caches" | while read -r sandbox_cache; do
+      echo "${LGREY}Cleaning Sandboxed Cache: $sandbox_cache${RESET}"
+      rm -rf "${sandbox_cache:?}/"* 2>/dev/null || echo "${YELLOW}Warning: Failed to clean $sandbox_cache${RESET}"
+      ((UC_FILE_COUNT++))
+    done
+  fi
+  # Custom Caches: Specific paths
+  echo "${CYAN}Scanning Custom Caches${RESET}"
+  for dir in "${custom_caches[@]}"; do
+    if [[ -d $dir ]]; then
+      echo "${LGREY}Cleaning: $dir${RESET}"
+      rm -rf "${dir:?}/"* 2>/dev/null || echo "${YELLOW}Warning: Failed to clean $dir${RESET}"
+      ((UC_FILE_COUNT++))
+    fi
+  done
+  echo "${CYAN}Cleaning Log and Trash${RESET}"
+  rm -rf ~/Library/Logs/* ~/.Trash/* 2>/dev/null
+  ((UC_FILE_COUNT++))
+  echo "${CYAN}Cleaning Saved App State${RESET}"
+  rm -rf ~/Library/Saved\ Application\ State/* 2>/dev/null
+  ((UC_FILE_COUNT++))
+  # Print summary of cleaned user caches
+  if (( UC_FILE_COUNT > 0 )); then
+    echo "${GREEN}$USER_CACHE_CLEANED_MSG $UUC_FILE_COUNT files${RESET}"
+    echo "${GREEN}$UC_FILE_COUNT files cleaned${RESET}"
+    user_caches_cleaned=$UC_FILE_COUNT
+  else
+    echo "${YELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
   fi
 }
 
@@ -726,24 +786,7 @@ fi
 # Step 1: Clear User Caches
 fancy_text_header "$CLEANING_CACHES_HEADER"
 print_hints "$CLEANING_CACHES_HINT"
-counter=0
-find ~/Library/Caches -mindepth 1 -maxdepth 1 -type d | while read -r dir; do
-  dirname=$(basename "$dir")
-  # Skip protected cache folders
-  if [[ ${protected_caches[(ie)$dirname]} -le ${#protected_caches} ]]; then
-    echo "${YELLOW}Skipping Protected Cache Folder: $dir${RESET}"
-  else
-    echo "${LGREY}Cleaning User Cache: $dir${RESET}"
-    sudo rm -rf "${dir:?}"/* 2>/dev/null || echo "${YELLOW}Warning: Failed to Clean $dir${RESET}"
-    ((counter++))
-  fi
-done
-if (( counter > 0 )); then
-  echo "${GREEN}$USER_CACHE_CLEANED_MSG${RESET}"
-  user_caches_cleaned=$counter
-else
-  echo "${YELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
-fi
+clean_user_caches
 echo ""
 
 # Step 2: Clean iOS device Backups
