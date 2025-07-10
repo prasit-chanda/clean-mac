@@ -902,8 +902,10 @@ print_hints "$CLEANING_HOMEBREW_HINT"
 if ping -c 1 -W 2 $DNS_SERVER >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
     print_brew_info
-    echo "${LGREY}Cleaning Homebrew${RESET}"
+    echo "${LGREY}$HOMEBREW_CLEAN_HEADER_MSG${RESET}"
+    brew autoremove
     brew cleanup -s
+    rm -rf "$(brew --cache)"/*
     echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
     homebrew_cleaned=1
   else
