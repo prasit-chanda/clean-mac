@@ -224,6 +224,7 @@ cleanup() {
   sync
 }
 
+# This function clean temporary files older than 3 days 
 clean_all_temp_dirs() {
   clean_temp_files "/tmp" "system temporary directory"
   clean_temp_files "/var/tmp" "variable temporary directory"
@@ -259,6 +260,47 @@ clean_ios_backups() {
   else
     echo "${YELLOW}${IOS_BACKUP_DIR_NONE_MSG}${RESET}"
     ios_backups_cleaned=0
+  fi
+}
+
+clean_homebrew() {
+  # Check internet connectivity via DNS ping
+  if ping -c1 -W2 "$DNS_SERVER" >/dev/null 2>&1; then
+    if command -v brew >/dev/null 2>&1; then
+      print_brew_info
+      echo "${LGREY}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"    
+      brew autoremove
+      brew cleanup -s
+      rm -rf "$(brew --cache)"/*
+      echo "${RESET}${GREEN}${HOMEBREW_CLEANED_MSG}${RESET}"
+      homebrew_cleaned=1
+    else
+      echo "${YELLOW}${HOMEBREW_NOT_INSTALLED_MSG}${RESET}"
+      homebrew_cleaned=0
+    fi
+  else
+    echo "${YELLOW}${HOMEBREW_CLEANUP_SKIPPED_MSG}${RESET}"
+    homebrew_cleaned=0
+  fi
+}
+
+# This fuction clean old downloads
+clean_old_downloads() {
+  local old_files downloads_cleaned
+  # Use find to collect files older than 7 days
+  old_files=("${(@f)$(command find "$HOME/Downloads" -type f -mtime +7 2>/dev/null)}")
+  # Remove empty entries
+  old_files=(${old_files:#""})
+  if (( ${#old_files[@]} == 0 )); then
+    echo "${YELLOW}${DOWNLOADS_CLEAN_MSG}${RESET}"
+    downloads_cleaned=0
+  else
+    for file in "${old_files[@]}"; do
+      echo "${LGREY}Cleaning File: $file${RESET}"
+      command rm -f -- "$file"
+    done
+    downloads_cleaned=${#old_files[@]}
+    echo "${GREEN}${downloads_cleaned} ${DOWNLOADS_FILE_CLEANED_MSG}${RESET}"
   fi
 }
 
@@ -948,42 +990,13 @@ echo ""
 # Step 8: Clean old Downloads
 fancy_text_header "$CLEANING_DOWNLOADS_HEADER"
 print_hints "$CLEANING_DOWNLOADS_HINT"
-old_files=("${(@f)$(sudo find "${HOME}/Downloads" -type f -mtime +7 2>/dev/null)}")
-old_files=(${old_files:#""})
-if (( ${#old_files[@]} == 0 )); then
-  echo "${YELLOW}$DOWNLOADS_CLEAN_MSG${RESET}"
-  downloads_cleaned=0
-else
-  for file in "${old_files[@]}"; do
-    echo "${LGREY}Cleaning File: $file${RESET}"
-    rm -f "$file"
-  done
-  echo "${GREEN}${#old_files[@]} $DOWNLOADS_FILE_CLEANED_MSG${RESET}"
-  downloads_cleaned=${#old_files[@]}
-fi
+clean_old_downloads
 echo ""
 
 # Step 9: Homebrew Cleanup
 fancy_text_header "$CLEANING_HOMEBREW_HEADER"
 print_hints "$CLEANING_HOMEBREW_HINT"
-# Check for stable internet connectivity before running Homebrew cleanup
-if ping -c 1 -W 2 $DNS_SERVER >/dev/null 2>&1; then
-  if command -v brew >/dev/null 2>&1; then
-    print_brew_info
-    echo "${LGREY}$HOMEBREW_CLEAN_HEADER_MSG${RESET}"
-    brew autoremove
-    brew cleanup -s
-    rm -rf "$(brew --cache)"/*
-    echo "${RESET}${GREEN}$HOMEBREW_CLEANED_MSG${RESET}"
-    homebrew_cleaned=1
-  else
-    echo "${YELLOW}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
-    homebrew_cleaned=0
-  fi
-else
-  echo "${YELLOW}$HOMEBREW_CLEANUP_SKIPPED_MSG${RESET}"
-  homebrew_cleaned=0
-fi
+clean_homebrew
 echo ""
 
 # Step 10: Purge inactive memory (if possible)
