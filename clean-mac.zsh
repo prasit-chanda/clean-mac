@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Version: 2.1.0-20250702-DVK13
+# Version: 2.2.0-20250710-S7DZR
 # License: Apache-2.0
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
 # Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
@@ -58,7 +58,7 @@ IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
 if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
-VER="2.1.0-20250702-DVK13"
+VER="2.2.0-20250710-S7DZR"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 protected_caches=(
@@ -157,7 +157,7 @@ PURGE_CLEANED_MSG="RAM cleared. Your Mac just sighed in relief"
 PURGE_NOT_AVAILABLE_MSG="'purge' command missing. How 2009 of you"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
 SCRIPT_DESCRIPTION="One script to wipe it all — caches, logs, downloads, guilt"
-SCRIPT_EXIT_MSG=" ● Press ⌃ + C anytime if you lose your nerve"
+SCRIPT_EXIT_MSG=" ● Press ⌃ + Z anytime if you lose your nerve"
 SCRIPT_INTERNET_MSG=" ● Needs internet. Don’t argue"
 SCRIPT_START_MSG="Running clean-mac — this might hurt"
 SCRIPT_SUDO_FAIL_MSG="✖ No sudo, no glory. Exiting script before things get messy"
@@ -470,10 +470,10 @@ print_brew_info() {
   local r=$(brew --repository)
   local c=$(brew --cellar)
   local u=$(git -C "$r" log -1 --format="%cd" --date=short 2>/dev/null); [[ -z "$u" ]] && u="no clue"
-  local j1=$(brew info --json=v2 --installed); local f=$(jq '.formulae | length' <<<"$j1"); local ck=$(jq '.casks | length' <<<"$j1")
+  local j1=$(HOMEBREW_NO_AUTO_UPDATE=1 brew info --json=v2 --installed); local f=$(jq '.formulae | length' <<<"$j1"); local ck=$(jq '.casks | length' <<<"$j1")
   local j2=$(brew outdated --json=v2); local of=$(jq '.formulae | length' <<<"$j2"); local oc=$(jq '.casks | length' <<<"$j2")
   local duo=$(du -sh "$c" 2>/dev/null | awk '{print $1}'); [[ -z "$duo" ]] && duo="??"
-  local d; brew doctor --quiet &>/dev/null && d="OK" || d="Doctor says brew is sick. Shocker"
+  local d=; brew doctor --quiet &>/dev/null && d="OK" || d="Doctor says brew is sick"
   local srv=$(brew services list 2>/dev/null | grep started | wc -l | tr -d ' '); [[ -z "$srv" ]] && srv=0
   echo "${GREEN}"
   echo "Path                  : $p"
@@ -549,7 +549,7 @@ print_clean_summary() {
     echo ""
     # Print memory freed
     if (( MEM_FREED_MB > 0 )); then
-      echo "${GREEN}  RAM Cleaned  $MEM_FREED_MB Megabyte(MB)${RESET}"
+      echo "${GREEN}  RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}"
     else
       echo "${YELLOW}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
     fi
@@ -569,7 +569,7 @@ print_clean_summary() {
       local mins=$(( (elapsed % 3600) / 60 ))
       local secs=$((elapsed % 60))
       local formatted_time=$(printf "%02d:%02d:%02d" $hours $mins $secs)
-      echo "${GREEN}  Script Execution Time ${formatted_time}${RESET}"
+      echo "${GREEN}  Execution Time ${formatted_time}${RESET}"
     fi
     echo ""
   fi
