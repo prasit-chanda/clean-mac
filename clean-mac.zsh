@@ -348,6 +348,26 @@ check_internet() {
   fi
 }
 
+# This function cleans iOS backup
+clean_ios_backups() {
+  local backup_count
+  if [[ -d "$IOS_BACKUP_DIR" ]]; then
+    backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
+    if (( backup_count > 0 )); then
+      echo "${LGREY}${IOS_BACKUP_FOUND_MSG} $backup_count iOS device backup(s)${RESET}"
+      sudo rm -rf "$IOS_BACKUP_DIR"/*
+      echo "${GREEN}${IOS_BACKUP_REMOVED_MSG}${RESET}"
+      ios_backups_cleaned=$backup_count
+    else
+      echo "${YELLOW}${IOS_BACKUP_NONE_MSG}${RESET}"
+      ios_backups_cleaned=0
+    fi
+  else
+    echo "${YELLOW}${IOS_BACKUP_DIR_NONE_MSG}${RESET}"
+    ios_backups_cleaned=0
+  fi
+}
+
 # This function cleans user caches older than 3 days
 clean_user_caches() { 
   local cache_dir=~/Library/Caches
@@ -792,21 +812,7 @@ echo ""
 # Step 2: Clean iOS device Backups
 fancy_text_header "$CLEANING_IOS_HEADER"
 print_hints "$CLEANING_IOS_HINT"
-if [[ -d "$IOS_BACKUP_DIR" ]]; then
-  backup_count=$(find "$IOS_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l | xargs)
-  if (( backup_count > 0 )); then
-    echo "${LGREY}$IOS_BACKUP_FOUND_MSG $backup_count iOS device backup(s)${RESET}"
-    sudo rm -rf "$IOS_BACKUP_DIR"/*
-    echo "${GREEN}$IOS_BACKUP_REMOVED_MSG${RESET}"
-    ios_backups_cleaned=$backup_count
-  else
-    echo "${YELLOW}$IOS_BACKUP_NONE_MSG${RESET}"
-    ios_backups_cleaned=0
-  fi
-else
-  echo "${YELLOW}$IOS_BACKUP_DIR_NONE_MSG${RESET}"
-  ios_backups_cleaned=0
-fi
+clean_ios_backups
 echo ""
 
 # Step 3: Clean Xcode DerivedData and device support
