@@ -224,114 +224,10 @@ cleanup() {
   sync
 }
 
-# Function to safely clean temp files in a directory older than 3 days
-clean_temp_files() {
-  local dir="$1"
-  local description="$2"
-  echo "${LGREY}Cleaning $description${RESET}"
-  # Count files before deletion
-  local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
-  if [[ $files_count -gt 0 ]]; then
-    # Use -delete for efficiency
-    sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
-    echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
-  else
-    echo "${YELLOW}No old files found in $description${RESET}"
-  fi
-}
-
-# Function to check execution dependencies (Homebrew, coreutils, osascript)
-check_dependencies() {
-  local dependencies_status=0
-  fancy_text_header "$DEPENDENCIES_HEADER"
-  echo ""
-  # --- Homebrew Check ---
-  if ! command -v brew >/dev/null 2>&1; then
-    echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
-    echo "${YELLOW}$HOMEBREW_INSTALL_ATTEMPT_MSG${RESET}"
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
-    if command -v brew >/dev/null 2>&1; then
-      echo "${GREEN}$HOMEBREW_INSTALL_SUCCESS_MSG${RESET}"
-    else
-      echo "${RED}$HOMEBREW_INSTALL_FAILED_MSG${RESET}"
-      dependencies_status=1
-    fi
-  else
-    echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
-  fi
-  # --- Coreutils Check ---
-  if ! brew ls --versions coreutils >/dev/null 2>&1; then
-    echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
-    print -nP "${YELLOW}$HOMEBREW_INSTALL_COREUTIL_ASK_MSG${RESET}"
-    read coreutil_answer
-    case "$coreutil_answer" in
-      [yY][eE][sS]|[yY])
-        brew install coreutils >/dev/null 2>&1 && \
-        echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}" || {
-          echo "${RED}$HOMEBREW_INSTALL_COREUTIL_FAIL_MSG${RESET}"
-          dependencies_status=1
-        }
-        ;;
-      [nN][oO]|[nN])
-        echo "${YELLOW}$HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG${RESET}"
-        dependencies_status=1
-        ;;
-      *)
-        echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
-        ;;
-    esac
-  else
-    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
-  fi
-  # --- osascript Check (macOS-only) ---
-  if ! command -v osascript >/dev/null 2>&1; then
-    echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
-    if brew info osascript >/dev/null 2>&1; then
-      print -nP "${YELLOW}$OSASCRIPT_INSTALL_ASK_MSG${RESET}"
-      read osascript_answer
-      case "$osascript_answer" in
-        [yY][eE][sS]|[yY])
-          brew install osascript >/dev/null 2>&1 && \
-          echo "${GREEN}$OSASCRIPT_INSTALL_SUCCESS_MSG${RESET}" || {
-            echo "${RED}$OSASCRIPT_INSTALL_FAILED_MSG${RESET}"
-            dependencies_status=1
-          }
-          ;;
-        [nN][oO]|[nN])
-          echo "${YELLOW}$OSASCRIPT_INSTALL_SKIPPED_MSG${RESET}"
-          dependencies_status=1
-          ;;
-        *)
-          echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
-          ;;
-      esac
-    else
-      echo "${YELLOW}$OSASCRIPT_INSTALL_CANT_MSG${RESET}"
-      dependencies_status=1
-    fi
-  else
-    echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
-  fi
-  # --- Final Result ---
-  if [[ $dependencies_status -eq 0 ]]; then
-    echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
-  else
-    echo "${RED}$DEPENDENCIES_NOT_MSG${RESET}"
-  fi
-  echo ""
-}
-
-# Function to check if the user has an internet connection
-# This uses ping to a reliable DNS server
-check_internet() {
-  local timeout=2
-  if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
-    echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
-    return 0
-  else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
-    return 1
-  fi
+clean_all_temp_dirs() {
+  clean_temp_files "/tmp" "system temporary directory"
+  clean_temp_files "/var/tmp" "variable temporary directory"
+  clean_temp_files "$HOME/Library/Caches/TemporaryItems" "user temporary items"
 }
 
 # This function cleans Docker stuffs
@@ -371,7 +267,7 @@ clean_old_logs() {
   local old_logs logs_cleaned
   echo "${CYAN}Scanning for system logs older than 7 days${RESET}"
   old_logs=("${(@f)$(sudo find /private/var/log -type f -mtime +7 2>/dev/null)}")
-  # Remove empty entries (if any)
+  # Remove void entries (if any)
   old_logs=(${old_logs:#""})
   if (( ${#old_logs[@]} == 0 )); then
     echo "${YELLOW}LOG is clean — $NO_FILES_TO_CLEAN_MSG${RESET}"
@@ -383,6 +279,22 @@ clean_old_logs() {
     done
     echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
     logs_cleaned=${#old_logs[@]}
+  fi
+}
+
+# Function to safely clean temp files in a directory older than 3 days
+clean_temp_files() {
+  local dir="$1"
+  local description="$2"
+  echo "${LGREY}Cleaning $description${RESET}"
+  # Count files before deletion
+  local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
+  if [[ $files_count -gt 0 ]]; then
+    # Use -delete for efficiency
+    sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
+    echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
+  else
+    echo "${YELLOW}No old files found in $description${RESET}"
   fi
 }
 
@@ -517,6 +429,100 @@ clean_xcode_cruft() {
     fi
   else
     echo "${YELLOW}${XCODE_DEVICE_NONE_MSG}${RESET}"
+  fi
+}
+
+# Function to check execution dependencies (Homebrew, coreutils, osascript)
+check_dependencies() {
+  local dependencies_status=0
+  fancy_text_header "$DEPENDENCIES_HEADER"
+  echo ""
+  # --- Homebrew Check ---
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
+    echo "${YELLOW}$HOMEBREW_INSTALL_ATTEMPT_MSG${RESET}"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
+    if command -v brew >/dev/null 2>&1; then
+      echo "${GREEN}$HOMEBREW_INSTALL_SUCCESS_MSG${RESET}"
+    else
+      echo "${RED}$HOMEBREW_INSTALL_FAILED_MSG${RESET}"
+      dependencies_status=1
+    fi
+  else
+    echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
+  fi
+  # --- Coreutils Check ---
+  if ! brew ls --versions coreutils >/dev/null 2>&1; then
+    echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
+    print -nP "${YELLOW}$HOMEBREW_INSTALL_COREUTIL_ASK_MSG${RESET}"
+    read coreutil_answer
+    case "$coreutil_answer" in
+      [yY][eE][sS]|[yY])
+        brew install coreutils >/dev/null 2>&1 && \
+        echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}" || {
+          echo "${RED}$HOMEBREW_INSTALL_COREUTIL_FAIL_MSG${RESET}"
+          dependencies_status=1
+        }
+        ;;
+      [nN][oO]|[nN])
+        echo "${YELLOW}$HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG${RESET}"
+        dependencies_status=1
+        ;;
+      *)
+        echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+        ;;
+    esac
+  else
+    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
+  fi
+  # --- osascript Check (macOS-only) ---
+  if ! command -v osascript >/dev/null 2>&1; then
+    echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
+    if brew info osascript >/dev/null 2>&1; then
+      print -nP "${YELLOW}$OSASCRIPT_INSTALL_ASK_MSG${RESET}"
+      read osascript_answer
+      case "$osascript_answer" in
+        [yY][eE][sS]|[yY])
+          brew install osascript >/dev/null 2>&1 && \
+          echo "${GREEN}$OSASCRIPT_INSTALL_SUCCESS_MSG${RESET}" || {
+            echo "${RED}$OSASCRIPT_INSTALL_FAILED_MSG${RESET}"
+            dependencies_status=1
+          }
+          ;;
+        [nN][oO]|[nN])
+          echo "${YELLOW}$OSASCRIPT_INSTALL_SKIPPED_MSG${RESET}"
+          dependencies_status=1
+          ;;
+        *)
+          echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+          ;;
+      esac
+    else
+      echo "${YELLOW}$OSASCRIPT_INSTALL_CANT_MSG${RESET}"
+      dependencies_status=1
+    fi
+  else
+    echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
+  fi
+  # --- Final Result ---
+  if [[ $dependencies_status -eq 0 ]]; then
+    echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
+  else
+    echo "${RED}$DEPENDENCIES_NOT_MSG${RESET}"
+  fi
+  echo ""
+}
+
+# Function to check if the user has an internet connection
+# This uses ping to a reliable DNS server
+check_internet() {
+  local timeout=2
+  if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
+    return 0
+  else
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
+    return 1
   fi
 }
 
@@ -936,9 +942,7 @@ echo ""
 # Step 7: Clean Temporary Files older than 3 days
 fancy_text_header "$CLEANING_FILES_HEADER"
 print_hints "$CLEANING_FILES_HINT"
-clean_temp_files "/tmp" "system temporary directory"
-clean_temp_files "/var/tmp" "variable temporary directory"
-clean_temp_files "$HOME/Library/Caches/TemporaryItems" "user temporary items"
+clean_all_temp_dirs
 echo ""
 
 # Step 8: Clean old Downloads
