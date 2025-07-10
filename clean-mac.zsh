@@ -52,6 +52,7 @@ OS_NAME=$(sw_vers -productName)
 OS_VERSION=$(sw_vers -productVersion)
 SCRIPT_START_TIME=$(date +%s)
 SERIAL=$(system_profiler SPHardwareDataType | awk '/Serial/ { print $4 }')
+TRASH_CLEANED=0
 UC_FILE_COUNT=0
 UPTIME=$(uptime | cut -d ',' -f1 | xargs)
 USER_EXITED=0
@@ -401,6 +402,58 @@ clean_old_logs() {
   fi
 }
 
+# This function empty Trash for user, root, and all mounted volumes
+clean_trash() {
+  local trash_cleaned=0
+  local trash_files system_trash="/private/var/root/.Trash"
+  local trashes_dir found_volume=0
+  # Clean User Trash
+  trash_files=("${(@f)$(ls -1 "$HOME/.Trash" 2>/dev/null)}")
+  trash_files=(${trash_files:#""})
+  if (( ${#trash_files[@]} == 0 )); then
+    echo "${YELLOW}$TRASH_CLEAN_MSG${RESET}"
+  else
+    for file in "${trash_files[@]}"; do
+      echo "${LGREY}Cleaning File: $file${RESET}"
+    done
+    osascript -e 'tell application "Finder" to empty trash' &>/dev/null
+    echo "${GREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
+    echo "${GREEN}$TRASH_USER_CLEANED_MSG${RESET}"
+    trash_cleaned=${#trash_files[@]}
+  fi
+  # Clean System Trash (Root)
+  if [[ -d "$system_trash" ]]; then
+    if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
+      echo "${YELLOW}$SYSTEM_TRASH_CLEAN_MSG${RESET}"
+    else
+      sudo rm -rf "$system_trash"/* &>/dev/null
+      echo "${GREEN}$SYSTEM_TRASH_CLEANED_MSG${RESET}"
+      trash_cleaned=1
+    fi
+  else
+    echo "${YELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
+  fi
+  # Clean Volume Trashes
+  for volume in /Volumes/*; do
+    trashes_dir="$volume/.Trashes"
+    if [[ -d "$trashes_dir" ]]; then
+      found_volume=1
+      if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
+        echo "${YELLOW}$TRASH_VOLUME_CLEAN_MSG $volume${RESET}"
+      else
+        sudo rm -rf "$trashes_dir"/* &>/dev/null
+        echo "${GREEN}$TRASH_VOLUME_CLEANED_MSG $volume${RESET}"
+        trash_cleaned=1
+      fi
+    fi
+  done
+  # No Mounted Volume Found
+  if (( found_volume == 0 )); then
+    echo "${YELLOW}$NO_MOUNTED_VOLUME_MSG${RESET}"
+  fi
+  return $trash_cleaned
+}
+
 # This function cleans user caches older than 3 days
 clean_user_caches() { 
   local cache_dir=~/Library/Caches
@@ -444,12 +497,6 @@ clean_user_caches() {
       ((UC_FILE_COUNT++))
     fi
   done
-  echo "${CYAN}Cleaning Log and Trash${RESET}"
-  rm -rf ~/Library/Logs/* ~/.Trash/* 2>/dev/null
-  ((UC_FILE_COUNT++))
-  echo "${CYAN}Cleaning Saved App State${RESET}"
-  rm -rf ~/Library/Saved\ Application\ State/* 2>/dev/null
-  ((UC_FILE_COUNT++))
   # Print summary of cleaned user caches
   if (( UC_FILE_COUNT > 0 )); then
     echo "${GREEN}$USER_CACHE_CLEANED_MSG $UUC_FILE_COUNT files${RESET}"
@@ -654,8 +701,8 @@ print_clean_summary() {
     [[ $logs_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
       echo "${YELLOW}$LOG_NONE${RESET}"
-    [[ $trash_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✓ Trash cleaned ($trash_cleaned files) ${RESET}" || \
+    [[ $TRASH_CLEANED -gt 0 ]] && \
+      echo "${GREEN}  ✓ Trash cleaned ($TRASH_CLEANED files) ${RESET}" || \
       echo "${YELLOW}$TRASH_NONE${RESET}"
     [[ $downloads_cleaned -gt 0 ]] && \
       echo "${GREEN}  ✓ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
@@ -898,48 +945,8 @@ echo ""
 # Step 6: Empty Trash/Bin for user, root, and all mounted volumes
 fancy_text_header "$CLEANING_TRASH_HEADER"
 print_hints "$CLEANING_TRASH_HINT"
-trash_files=("${(@f)$(sudo ls -1 "${HOME}/.Trash" 2>/dev/null)}")
-trash_files=(${trash_files:#""})
-if (( ${#trash_files[@]} == 0 )); then
-  echo "${YELLOW}$TRASH_CLEAN_MSG${RESET}"
-else
-  for file in "${trash_files[@]}"; do
-    echo "${LGREY}Cleaning File: $file${RESET}"
-  done
-  osascript -e 'tell application "Finder" to empty trash' 2>/dev/null
-  echo "${GREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
-  echo "${GREEN}$TRASH_USER_CLEANED_MSG${RESET}"
-  trash_cleaned=${#trash_files[@]}
-fi
-system_trash="/private/var/root/.Trash"
-if [[ -d "$system_trash" ]]; then
-  if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
-    echo "${YELLOW}$SYSTEM_TRASH_CLEAN_MSG${RESET}"
-  else
-    sudo rm -rf "$system_trash"/* 2>/dev/null
-    echo "${GREEN}$SYSTEM_TRASH_CLEANED_MSG${RESET}"
-    trash_cleaned=1
-  fi
-else
-  echo "${YELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
-fi
-found_volume=0
-for volume in /Volumes/*; do
-  trashes_dir="$volume/.Trashes"
-  if [[ -d "$trashes_dir" ]]; then
-    found_volume=1
-    if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
-      echo "${YELLOW}$TRASH_VOLUME_CLEAN_MSG $volume${RESET}"
-    else
-      sudo rm -rf "$trashes_dir"/* 2>/dev/null
-      echo "${GREEN}$TRASH_VOLUME_CLEANED_MSG $volume${RESET}"
-      trash_cleaned=1
-    fi
-  fi
-done
-if [[ $found_volume -eq 0 ]]; then
-  echo "${YELLOW}$NO_MOUNTED_VOLUME_MSG${RESET}"
-fi
+clean_trash
+TRASH_CLEANED=$?
 echo ""
 
 # Step 7: Clean Temporary Files older than 3 days
