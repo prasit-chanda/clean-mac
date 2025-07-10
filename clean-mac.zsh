@@ -243,14 +243,13 @@ clean_temp_files() {
 # Function to check execution dependencies (Homebrew, coreutils, osascript)
 check_dependencies() {
   local dependencies_status=0
-  fancy_text_header $DEPENDENCIES_HEADER
+  fancy_text_header "$DEPENDENCIES_HEADER"
   echo ""
-  # Check Homebrew
+  # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
     echo "${YELLOW}$HOMEBREW_INSTALL_ATTEMPT_MSG${RESET}"
-    # Try to install Homebrew non-interactively
-    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" >/dev/null 2>&1
     if command -v brew >/dev/null 2>&1; then
       echo "${GREEN}$HOMEBREW_INSTALL_SUCCESS_MSG${RESET}"
     else
@@ -260,66 +259,52 @@ check_dependencies() {
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
-  # Check coreutils via Homebrew
-  if ! brew list coreutils >/dev/null 2>&1; then
+  # --- Coreutils Check ---
+  if ! brew ls --versions coreutils >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
-    # Ask user if they want to install coreutils
-    while true; do
-      print -nP "${YELLOW}$HOMEBREW_INSTALL_COREUTIL_ASK_MSG${RESET}"
-      read coreutil_answer
-      case "$coreutil_answer" in
+    print -nP "${YELLOW}$HOMEBREW_INSTALL_COREUTIL_ASK_MSG${RESET}"
+    read coreutil_answer
+    case "$coreutil_answer" in
+      [yY][eE][sS]|[yY])
+        brew install coreutils >/dev/null 2>&1 && \
+        echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}" || {
+          echo "${RED}$HOMEBREW_INSTALL_COREUTIL_FAIL_MSG${RESET}"
+          dependencies_status=1
+        }
+        ;;
+      [nN][oO]|[nN])
+        echo "${YELLOW}$HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG${RESET}"
+        dependencies_status=1
+        ;;
+      *)
+        echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+        ;;
+    esac
+  else
+    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
+  fi
+  # --- osascript Check (macOS-only) ---
+  if ! command -v osascript >/dev/null 2>&1; then
+    echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
+    if brew info osascript >/dev/null 2>&1; then
+      print -nP "${YELLOW}$OSASCRIPT_INSTALL_ASK_MSG${RESET}"
+      read osascript_answer
+      case "$osascript_answer" in
         [yY][eE][sS]|[yY])
-          brew install coreutils
-          if brew list coreutils >/dev/null 2>&1; then
-            echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
-          else
-            echo "${RED}$HOMEBREW_INSTALL_COREUTIL_FAIL_MSG${RESET}"
+          brew install osascript >/dev/null 2>&1 && \
+          echo "${GREEN}$OSASCRIPT_INSTALL_SUCCESS_MSG${RESET}" || {
+            echo "${RED}$OSASCRIPT_INSTALL_FAILED_MSG${RESET}"
             dependencies_status=1
-          fi
-          break
+          }
           ;;
         [nN][oO]|[nN])
-          echo "${YELLOW}$HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG${RESET}"
+          echo "${YELLOW}$OSASCRIPT_INSTALL_SKIPPED_MSG${RESET}"
           dependencies_status=1
-          break
           ;;
         *)
           echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
           ;;
       esac
-    done
-  else
-    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
-  fi
-  # Check osascript (should always exist on macOS)
-  if ! command -v osascript >/dev/null 2>&1; then
-    echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
-    # Try to install osascript via Homebrew if possible, else prompt user
-    if command -v brew >/dev/null 2>&1 && brew search osascript | grep -q osascript; then
-      while true; do
-        print -nP "${YELLOW}$OSASCRIPT_INSTALL_ASK_MSG${RESET}"
-        read osascript_answer
-        case "$osascript_answer" in
-          [yY][eE][sS]|[yY])
-            brew install osascript
-            if command -v osascript >/dev/null 2>&1; then
-              echo "${GREEN}$OSASCRIPT_INSTALL_SUCCESS_MSG${RESET}"
-            else
-              echo "${RED}$OSASCRIPT_INSTALL_FAILED_MSG${RESET}"
-              dependencies_status=1
-            fi
-            break
-            ;;
-          [nN][oO]|[nN])
-            echo "${YELLOW}$OSASCRIPT_INSTALL_SKIPPED_MSG${RESET}"
-            dependencies_status=1
-            break
-            ;;
-          *)
-            echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
-            ;;
-        esac
-      done
     else
       echo "${YELLOW}$OSASCRIPT_INSTALL_CANT_MSG${RESET}"
       dependencies_status=1
@@ -327,12 +312,11 @@ check_dependencies() {
   else
     echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
-  # Final decision
+  # --- Final Result ---
   if [[ $dependencies_status -eq 0 ]]; then
     echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
   else
     echo "${RED}$DEPENDENCIES_NOT_MSG${RESET}"
-    echo ""
   fi
   echo ""
 }
