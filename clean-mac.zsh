@@ -11,6 +11,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # Author: Prasit Chanda
 # Version: 2.2.0-20250710-S7DZR
 # License: Apache-2.0
+# github: https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
 # Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
 # ------------------------------------------------------------------------------
@@ -427,6 +428,35 @@ clean_user_caches() {
   fi
 }
 
+# This function cleans Xcode DerivedData and device support
+clean_xcode_cruft() {
+  local derived_count device_support_count
+  # Clean Xcode DerivedData
+  if [[ -d "$XCODE_DERIVED_DATA" ]]; then
+    derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
+    if [[ $derived_count -gt 0 ]]; then
+      sudo rm -rf "$XCODE_DERIVED_DATA"/*
+      echo "${GREEN}${XCODE_DERIVED_CLEANED_MSG} ($derived_count items).${RESET}"
+    else
+      echo "${YELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
+    fi
+  else
+    echo "${YELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
+  fi
+  # Clean Xcode DeviceSupport
+  if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
+    device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
+    if [[ $device_support_count -gt 0 ]]; then
+      sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
+      echo "${GREEN}${XCODE_DEVICE_CLEANED_MSG} ($device_support_count items).${RESET}"
+    else
+      echo "${YELLOW}${XCODE_DEVICE_NONE_MSG}${RESET}"
+    fi
+  else
+    echo "${YELLOW}${XCODE_DEVICE_NONE_MSG}${RESET}"
+  fi
+}
+
 # This function prints a fancy line divider
 fancy_line_divider() {
   # Total width of the divider
@@ -818,26 +848,7 @@ echo ""
 # Step 3: Clean Xcode DerivedData and device support
 fancy_text_header "$CLEANING_XCODE_HEADER"
 print_hints "$CLEANING_XCODE_HINT"
-# Check for Xcode DerivedData
-if [[ -d "$XCODE_DERIVED_DATA" ]]; then
-  derived_count=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
-  if [[ -n "$(ls -A "$XCODE_DERIVED_DATA")" ]]; then
-    sudo rm -rf "$XCODE_DERIVED_DATA"/*
-    echo "${GREEN}$XCODE_DERIVED_CLEANED_MSG ($derived_count items).${RESET}"
-  else
-    echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
-  fi
-else
-  echo "${YELLOW}$XCODE_DERIVED_NONE_MSG${RESET}"
-fi
-# Check for Xcode DeviceSupport
-if [[ -d "$XCODE_DEVICE_SUPPORT" ]]; then
-  device_support_count=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
-  sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
-  echo "${GREEN}$XCODE_DEVICE_CLEANED_MSG ($device_support_count items)${RESET}"
-else
-  echo "${YELLOW}$XCODE_DEVICE_NONE_MSG${RESET}"
-fi
+clean_xcode_cruft
 echo ""
 
 # Step 4: Clean Docker system (if installed)
