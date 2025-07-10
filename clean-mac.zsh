@@ -349,6 +349,18 @@ check_internet() {
   fi
 }
 
+# This function cleans Docker stuffs
+clean_docker() {
+  if command -v docker >/dev/null 2>&1; then
+    docker system prune -af --volumes >/dev/null 2>&1
+    echo "${GREEN}${DOCKER_PRUNED_MSG}${RESET}"
+    docker_cleaned=1
+  else
+    echo "${YELLOW}${DOCKER_NOT_INSTALLED_MSG}${RESET}"
+    docker_cleaned=0
+  fi
+}
+
 # This function cleans iOS backup
 clean_ios_backups() {
   local backup_count
@@ -854,14 +866,7 @@ echo ""
 # Step 4: Clean Docker system (if installed)
 fancy_text_header "$CLEANING_DOCKER_HEADER"
 print_hints "$CLEANING_DOCKER_HINT"
-if command -v docker >/dev/null 2>&1; then
-  docker system prune -af --volumes
-  echo "${GREEN}$DOCKER_PRUNED_MSG${RESET}"
-  docker_cleaned=1
-else
-  echo "${YELLOW}$DOCKER_NOT_INSTALLED_MSG${RESET}"
-  docker_cleaned=0
-fi
+clean_docker
 echo ""
 
 # Step 5: Clean old System Logs older than 7 days
