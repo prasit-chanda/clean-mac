@@ -207,7 +207,7 @@ ask_user_consent() {
         echo "${RED}$PROMPT_USER_CONSENT_DENIAL${RESET}"
         echo ""
         USER_EXITED=1       # Set the flag so summary knows user exited
-        print_clean_summary # Print summary (will skip results if exited)
+        print_summary # Print summary (will skip results if exited)
         exit 1
         ;;
       *)
@@ -215,13 +215,6 @@ ask_user_consent() {
         ;;
     esac
   done
-}
-
-# Cleanup function: kills background jobs and syncs log file
-cleanup() {
-  trap - EXIT
-  kill $(jobs -p) 2>/dev/null
-  sync
 }
 
 # This function clean temporary files older than 3 days 
@@ -723,104 +716,57 @@ print_brew_info() {
 }
 
 # Function to print summary at the end of the script
-print_clean_summary() {
+print_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
     fancy_title_box "$CLEANUP_MSG"
-    echo ""
-    echo "${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREEN}"
-    echo ""
+    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREEN}\n"
     echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
     echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
-    echo "  RAM     $(($(sysctl -n hw.memsize 2>/dev/null || echo 0)/1024/1024/1024)) GB"
+    echo "  RAM     $(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 )) GB"
     echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
     echo "  Uptime  $(get_uptime)"
-    echo "${RESET}"
-    echo "${CYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}"
-    echo ""
+    echo -e "${RESET}\n${CYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
     check_internet
-    [[ $user_caches_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✓ User caches cleaned ($user_caches_cleaned folders) ${RESET}" || \
-      echo "${YELLOW}$USER_CACHE_NONE${RESET}"
-    [[ $logs_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✓ Old log files cleaned ($logs_cleaned files) ${RESET}" || \
-      echo "${YELLOW}$LOG_NONE${RESET}"
-    [[ $TRASH_CLEANED -gt 0 ]] && \
-      echo "${GREEN}  ✓ Trash cleaned ($TRASH_CLEANED files) ${RESET}" || \
-      echo "${YELLOW}$TRASH_NONE${RESET}"
-    [[ $downloads_cleaned -gt 0 ]] && \
-      echo "${GREEN}  ✓ Old Downloads cleaned ($downloads_cleaned files) ${RESET}" || \
-      echo "${YELLOW}$DL_NONE${RESET}"
-    [[ $homebrew_cleaned == 1 ]] && \
-      echo "${GREEN}$HOMEBREW_OK${RESET}" || \
-      echo "${RED}$HOMEBREW_NONE${RESET}"
-    [[ $memory_purged == 1 ]] && \
-      echo "${GREEN}$MEM_OK${RESET}" || \
-      echo "${YELLOW}$MEM_NONE${RESET}"
-    [[ ${ios_backups_cleaned:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✓ iOS device backups cleaned ($ios_backups_cleaned) ${RESET}" || \
-      echo "${YELLOW}$IOS_NONE${RESET}"
-    [[ ${derived_count:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✓ Xcode DerivedData cleaned ($derived_count items) ${RESET}" || \
-      echo "${YELLOW}$DD_NONE${RESET}"
-    [[ ${device_support_count:-0} -gt 0 ]] && \
-      echo "${GREEN}  ✓ Xcode DeviceSupport cleaned ($device_support_count items) ${RESET}" || \
-      echo "${YELLOW}$DS_NONE${RESET}"
-    [[ ${docker_cleaned:-0} -eq 1 ]] && \
-      echo "${GREEN}$DOCKER_OK${RESET}" || \
-      echo "${RED}$DOCKER_NONE${RESET}"
-    # Results section
-    # Measure memory and disk space freed
+    # Status checks
+    [[ $user_caches_cleaned    -gt 0 ]] && echo "${GREEN}  ✓ User caches cleaned ($user_caches_cleaned folders)${RESET}" || echo "${YELLOW}$USER_CACHE_NONE${RESET}"
+    [[ $logs_cleaned           -gt 0 ]] && echo "${GREEN}  ✓ Old log files cleaned ($logs_cleaned files)${RESET}" || echo "${YELLOW}$LOG_NONE${RESET}"
+    [[ $TRASH_CLEANED          -gt 0 ]] && echo "${GREEN}  ✓ Trash cleaned ($TRASH_CLEANED files)${RESET}" || echo "${YELLOW}$TRASH_NONE${RESET}"
+    [[ $downloads_cleaned      -gt 0 ]] && echo "${GREEN}  ✓ Old Downloads cleaned ($downloads_cleaned files)${RESET}" || echo "${YELLOW}$DL_NONE${RESET}"
+    [[ $homebrew_cleaned       -eq 1 ]] && echo "${GREEN}$HOMEBREW_OK${RESET}" || echo "${RED}$HOMEBREW_NONE${RESET}"
+    [[ $memory_purged          -eq 1 ]] && echo "${GREEN}$MEM_OK${RESET}" || echo "${YELLOW}$MEM_NONE${RESET}"
+    [[ ${ios_backups_cleaned:-0}      -gt 0 ]] && echo "${GREEN}  ✓ iOS device backups cleaned ($ios_backups_cleaned)${RESET}" || echo "${YELLOW}$IOS_NONE${RESET}"
+    [[ ${derived_count:-0}            -gt 0 ]] && echo "${GREEN}  ✓ Xcode DerivedData cleaned ($derived_count items)${RESET}" || echo "${YELLOW}$DD_NONE${RESET}"
+    [[ ${device_support_count:-0}     -gt 0 ]] && echo "${GREEN}  ✓ Xcode DeviceSupport cleaned ($device_support_count items)${RESET}" || echo "${YELLOW}$DS_NONE${RESET}"
+    [[ ${docker_cleaned:-0}           -eq 1 ]] && echo "${GREEN}$DOCKER_OK${RESET}" || echo "${RED}$DOCKER_NONE${RESET}"
+    # Disk and Memory Calculations
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
-    MEM_AFTER=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
-    MEM_AFTER_MB=$(( MEM_AFTER * 4096 / 1024 / 1024 ))
+    MEM_AFTER_MB=$(( $(vm_stat | awk '/Pages free/ {print $3}' | sed 's/\\.//') * 4096 / 1024 / 1024 ))
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
-    echo ""
-    echo "${CYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}"
-    echo ""
-    # Print memory freed
-    if (( MEM_FREED_MB > 0 )); then
-      echo "${GREEN}  RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}"
-    else
-      echo "${YELLOW}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
-    fi
-    # Print disk space freed
-    if (( space_freed > 0 )); then
-      echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}"
-    elif (( space_freed < 0 )); then
-      echo "${YELLOW}$DISK_SPACE_UNCHANGED_MSG${RESET}"
-    else
-      echo "${YELLOW}$DISK_SPACE_UNCHANGED_MSG${RESET}"
-    fi
-    # Add execution time
+    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
+    (( MEM_FREED_MB > 0 )) && echo "${GREEN}  RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${YELLOW}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
+    (( space_freed > 0 )) && echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}" || echo "${YELLOW}$DISK_SPACE_UNCHANGED_MSG${RESET}"
+    # Script execution time
     SCRIPT_END_TIME=$(date +%s)
-    if [[ -n "$SCRIPT_START_TIME" && -n "$SCRIPT_END_TIME" ]]; then
+    if [[ -n "$SCRIPT_START_TIME" ]]; then
       local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
-      local hours=$((elapsed / 3600))
-      local mins=$(( (elapsed % 3600) / 60 ))
-      local secs=$((elapsed % 60))
-      local formatted_time=$(printf "%02d:%02d:%02d" $hours $mins $secs)
-      echo "${GREEN}  Execution Time ${formatted_time}${RESET}"
+      printf "${GREEN}  Execution Time %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
     fi
     echo ""
   fi
-  # Print Footer Contents
+  # Footer info
   echo "$FOOTER_LOG_DIR_MSG"
   echo "$FOOTER_LOG_FILE_MSG"
   echo "$FOOTER_SCRIPT_VERSION_MSG"
   echo ""
   fancy_text_header "$AUTHOR_COPYRIGHT"
   echo ""
-  # Flush filesystem buffers to ensure all changes are written to disk
+  # Finalize
   sync
-  # Close file descriptors (for tee subshells)
   exec 1>&- 2>&-
-  # Open the log file in Console (if available)
-  if command -v open >/dev/null 2>&1; then
-    open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
-  fi
+  command -v open >/dev/null 2>&1 && open -a "Console" "${LOGFILE}" 2>/dev/null || echo "${YELLOW}Could not open log in Console.${RESET}"
 }
 
 # Function to show RAM summary (for display before/after purge)
@@ -949,7 +895,7 @@ if ! sudo -v; then
   echo "${RED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
   echo ""
   USER_EXITED=1
-  print_clean_summary
+  print_summary
   exit 1
 else
   # Keep sudo alive in the background to avoid password prompts
@@ -1019,7 +965,7 @@ clean_memory_ram
 echo ""
 
 # Print the cleanup summary at the end
-print_clean_summary
+print_summary
 
 # Ensure all background jobs are killed on exit
 trap 'kill $(jobs -p) 2>/dev/null' EXIT
