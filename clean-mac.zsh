@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author: Prasit Chanda
-# Version: 2.2.0-20250710-S7DZR
+# Version: 2.2.5-20250710-AS3SK
 # License: Apache-2.0
 # github: https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -60,7 +60,7 @@ IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
 if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
-VER="2.2.0-20250710-S7DZR"
+VER="2.2.5-20250710-AS3SK"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 protected_caches=(
