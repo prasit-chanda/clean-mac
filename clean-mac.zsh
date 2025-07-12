@@ -9,11 +9,12 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.3.8-20250712-PW8XU
+# Version  : 2.4.1-20250712-SUZ21
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
-# Usage: Run in Terminal with zsh. Requires: Homebrew, coreutils, osascript
+# Usage: Run in Terminal with zsh. 
+# Requires: Homebrew, coreutils, osascript
 # ------------------------------------------------------------------------------
 
 # ───── Static Colors Variables ─────
@@ -88,7 +89,8 @@ IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
 if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
-VERSION="2.3.8-20250712-PW8XU"
+REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
+VERSION="2.4.1-20250712-SUZ21"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 PROTECTED_CACHES=(
@@ -122,22 +124,22 @@ CLEANING_TRASH_HEADER="Trash"
 CLEANING_TRASH_HINT="Emptying your Trash to permanently remove deleted files"
 CLEANING_XCODE_HEADER="Xcode"
 CLEANING_XCODE_HINT="Removing Xcode build artifacts and unnecessary data"
-CLEANUP_MSG="Cleanup Summary"
+CLEANUP_MSG="Cleanup Recap"
 DD_NONE="  ● No DerivedData folder found for Xcode"
 DEPENDENCIES_HEADER="Dependencies"
 DEPENDENCIES_NOT_MSG="Some required tools are missing. Please check your setup"
 DEPENDENCIES_OK_MSG="All necessary dependencies are present and functional"
-DISK_SPACE_UNCHANGED_MSG="  No change in disk usage detected"
+DISK_SPACE_UNCHANGED_MSG="  ● No change in disk usage detected"
 DL_NONE="  ● Downloads folder is already clean"
 DOCKER_CLEANING="Cleaning Docker containers, images, and volumes"
 DOCKER_NONE="  ✖ Docker not detected. Skipped cleanup"
-DOCKER_NOT_INSTALLED_MSG="Docker is not installed on this system"
+DOCKER_NOT_INSTALLED_MSG="Docker is not configured or installed on this host"
 DOCKER_OK="  ✓ Docker resources cleaned successfully"
 DOCKER_PRUNED_MSG="Docker cleanup completed"
 DOCKER_SCAN="Scanning Docker for unused containers, images, and volumes"
 DOWNLOADS_CLEAN_MSG="Downloads folder is already clean"
 DOWNLOADS_FILE_CLEANED_MSG="Outdated downloads removed successfully"
-DS_NONE="  ● Xcode DeviceSupport folder is already clean"
+DS_NONE="  ● Xcode DeviceSupport - no connected device detected"
 FOOTER_LOG_DIR_MSG="Folder   $WD"
 FOOTER_LOG_FILE_MSG="Log      $LOG_FILE"
 FOOTER_SCRIPT_VERSION_MSG="Version  $VERSION"
@@ -153,11 +155,11 @@ HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew installed successfully"
 HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="coreutils not found. Manual installation may be required"
 HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is already installed"
 HOMEBREW_INSTALLED_MSG="Homebrew is already installed on your system"
-HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be missing or offline"
+HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be offline"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils not installed. Please check your Homebrew setup"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew is not installed"
 HOMEBREW_OK="  ✓ Homebrew cleanup completed successfully"
-HOMEBREW_INTERNET_CHECK="Checking internet connectivity. DNS: $DNS_SERVER\n"
+HOMEBREW_INTERNET_CHECK="Checking internet connectivity. DNS: $DNS_SERVER"
 HOMEBREW_INTERNET_DOWN="Internet not available. Please check your connection"
 HOMEBREW_INTERNET_UP="Internet connection is active"
 HOMEBREW_CLEAN_AR="Removing unnecessary packages not directly installed"
@@ -171,20 +173,21 @@ IOS_BACKUP_DIR_NONE_MSG="No iOS backup folder found"
 IOS_BACKUP_FOUND_MSG="Old iOS backups located"
 IOS_BACKUP_NONE_MSG="No outdated iOS backups found"
 IOS_BACKUP_REMOVED_MSG="Outdated iOS backups removed"
-IOS_NONE="  ● No iOS backups found"
+IOS_NONE="  ● No iOS backups were detected"
 IOS_BACKUP_NOT_DETECTED="No connected iOS devices detected"
 LOG_CLEAN_MSG="Log files already clean"
 LOG_FILE_CLEANED_MSG="Old log files successfully removed"
 LOG_NONE="  ● No old log files to delete"
 MEM_NONE="  ● No memory to free at this time"
-MEM_OK="  ✓ Memory cleared successfully"
-MEMORY_SPACE_UNCHANGED_MSG="No changes in memory usage detected"
-NO_DOCKER_ON_SYS="Docker isn’t installed or can’t be found"
+MEM_OK="  ✓ Memory was cleared to enhance performance"
+MEMORY_SPACE_UNCHANGED_MSG="  ● No changes in memory usage detected"
+NO_DOCKER_ON_SYS="Docker installation not detected or unavailable"
 NO_FILES_TO_CLEAN_MSG="No files detected for cleanup"
 NO_HOMEBREW="Homebrew is not available in the system path"
 NO_IOS_DEVICE="No iOS devices are connected to the system"
 NO_LOG_CLEAN="Log files are already clean"
-NO_MOUNTED_VOLUME_MSG="No external volumes mounted"
+NO_MOUNTED_VOLUME_MSG="No external storage devices detected"
+NO_MOUNTED_VOLUME_MSG_2="No active mounts for external devices"
 NOT_ZSH_MSG="This script is optimized for Zsh. Please switch your shell."
 OSASCRIPT_AVAILABLE_MSG="osascript is available"
 OSASCRIPT_INSTALL_ASK_MSG="Would you like to install osascript via Homebrew? (y/n) "
@@ -199,20 +202,26 @@ PROMPT_USER_CONSENT_MSG="${BYELLOW}Would you like to proceed with the script? (y
 PROMPT_VALIDATE_MSG="Please respond with 'y' or 'n'"
 PURGE_CLEANED_MSG="RAM purge completed"
 PURGE_NOT_AVAILABLE_MSG="The 'purge' command is not available on this system"
-RAM_CLEAN="Clearing RAM to improve system performance"
+RAM_INFO="Memory Details"
+RAM_SCAN="Scanning RAM to improve system performance"
+RAM_CLEAN="RAM has been refreshed to boost efficiency"
 RAM_PURGE_MISS="Please ensure the 'purge' command is installed and accessible"
 OLD_FILE_CLEAN="Scanning Downloads folder for files older than 7 days"
 OLD_LOG_CLEAN="Scanning system logs older than 7 days"
 ROOT_WARNING_MSG="Running as root is not recommended. Exiting for safety"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
-SCRIPT_DESCRIPTION="A script to clean caches, logs, downloads, and other temporary files"
+SCRIPT_DESCRIPTION="clean-mac.zsh is your Mac’s unofficial janitor — the one that actually shows up. 
+With a single command, it scrubs away system and user junk: caches, logs, temporary 
+clutter, dusty old downloads, and whatever’s been rotting in your Trash. It even cleans 
+up after Homebrew’s bad habits (because who else will?). At the end, it smugly tells you 
+how much space it saved — and logs every step, just in case you want receipts."
 SCRIPT_EXIT_MSG=" ● Press ⌃ + Z anytime to pause or exit"
-SCRIPT_INTERNET_MSG=" ● Internet connectivity is required"
+SCRIPT_INTERNET_MSG=" ● Internet connection needed for cleanup and checks"
 SCRIPT_START_MSG="Starting clean-mac: optimizing your system now"
 SCRIPT_SUDO_FAIL_MSG="✖ Sudo access not granted. Exiting for safety"
 SCRIPT_SUDO_MSG=" ● This script may request your administrator password"
 SCRIPT_TERMINAL_MSG=" ● Please run this in the macOS Terminal"
-SUM_TEXT_CACHE="  ✓ User caches cleaned "
+SUM_TEXT_CACHE="  ✓ User Caches cleaned "
 SUM_TEXT_LOG="  ✓ Old log files cleaned "
 SUM_TEXT_TRASH="  ✓ Trash cleaned "
 SUM_TEXT_DWL="  ✓ Old Downloads cleaned "
@@ -233,9 +242,9 @@ TRASH_USER_CLEANED_MSG="Trash has been cleared"
 TRASH_VOLUME_CLEAN_MSG="Volume Trash is already empty"
 TRASH_VOLUME_CLEANED_MSG="Volume Trash has been cleaned"
 UNSUPPORTED_OS_MSG="✖ This script is only compatible with macOS"
-USER_CACHE_CLEAN_MSG="User cache is already clean"
-USER_CACHE_CLEANED_MSG="User cache cleared successfully"
-USER_CACHE_NONE="  ● No user cache files found"
+USER_CACHE_CLEAN_MSG="User Caches are already clean"
+USER_CACHE_CLEANED_MSG="User Caches cleared successfully"
+USER_CACHE_NONE="  ● No User Caches file(s) found"
 XCODE_DEVICE_CLEANED_MSG="Xcode device data removed"
 XCODE_DEVICE_NONE_MSG="No Xcode device data found"
 XCODE_DERIVED_CLEANED_MSG="Xcode DerivedData folder cleaned"
@@ -343,7 +352,6 @@ check_dependencies() {
   fi
   sleep 10
   # --- Final Result ---
-  echo ""
   if [[ $dependencies_status -eq 0 ]]; then
     echo "${BGREEN}$DEPENDENCIES_OK_MSG${RESET}"
   else
@@ -453,9 +461,9 @@ clean_homebrew() {
     # Check internet connectivity via DNS ping
     echo "${MAGENTA}$HOMEBREW_INTERNET_CHECK${RESET}"
     if ping -c1 -W2 "$DNS_SERVER" >/dev/null 2>&1; then 
-      echo "${BCYAN}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
+      echo "\n${BCYAN}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
       echo "" 
-      echo "${GREY}$HOMEBREW_INTERNET_UP${RESET}"     
+      echo "${GREEN}$HOMEBREW_INTERNET_UP${RESET}"     
       brew autoremove
       echo "${GREY}$HOMEBREW_CLEAN_AR${RESET}"
       brew cleanup -s
@@ -465,8 +473,8 @@ clean_homebrew() {
       echo "${BGREEN}${HOMEBREW_CLEANED_MSG}${RESET}"
       BREW_CLEANED=1       
     else
-      echo "${GREY}$HOMEBREW_INTERNET_DOWN${RESET}"   
-      echo "${BYELLOW}${HOMEBREW_CLEANUP_SKIPPED_MSG}${RESET}"
+      echo "${RED}$HOMEBREW_INTERNET_DOWN${RESET}"   
+      echo "${BRED}${HOMEBREW_CLEANUP_SKIPPED_MSG}${RESET}"
       BREW_CLEANED=0
     fi
   else
@@ -479,7 +487,7 @@ clean_homebrew() {
 
 # This function cleans RAM
 clean_memory_ram() {
-  echo "${MAGENTA}$RAM_CLEAN${RESET}"
+  echo "${MAGENTA}$RAM_SCAN${RESET}"
   if command -v purge >/dev/null 2>&1; then
     sudo purge >/dev/null 2>&1 && sleep 1
     echo "${GREY}$RAM_CLEAN${RESET}"
@@ -615,7 +623,7 @@ clean_trash() {
   # No Mounted Volume Found
   if (( found_volume == 0 )); then
     echo "${GREY}$NO_MOUNTED_VOLUME_MSG${RESET}"
-    echo "${BRED}$NO_MOUNTED_VOLUME_MSG${RESET}"
+    echo "${BRED}$NO_MOUNTED_VOLUME_MSG_2${RESET}"
   fi
   echo ""
 }
@@ -669,7 +677,7 @@ clean_user_caches() {
   done
   # Print summary of cleaned user caches
   if (( UC_FILE_COUNT > 0 )); then
-    echo "${BGREEN}$USER_CACHE_CLEANED_MSG ($UC_FILE_COUNT files cleaned)${RESET}"
+    echo "${BGREEN}$USER_CACHE_CLEANED_MSG ($UC_FILE_COUNT folders cleaned)${RESET}"
     CACHES_CLEANED=$UC_FILE_COUNT
   else
     echo "${BYELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
@@ -884,7 +892,7 @@ print_hints() {
 # This function prints script info as header
 print_script_info(){
   fancy_title_box "$SCRIPT_BOX_TITLE"
-  echo "\n${BCYAN}$SCRIPT_DESCRIPTION${RESET}\n"
+  echo "\n${CYAN}$SCRIPT_DESCRIPTION${RESET}\n"
   echo "${GREY}$DATE${RESET}"
   echo "${GREY}SCAN ID $(generate_random_string)${RESET}"
   echo "${GREY}Version $VERSION${RESET}"
@@ -928,13 +936,13 @@ print_summary() {
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
     echo -e "\n${BCYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
-    (( MEM_FREED_MB > 0 )) && echo "${GREEN}  RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
-    (( space_freed > 0 )) && echo "${GREEN}  Disk Cleaned $(human_readable_space $space_freed)${RESET}" || echo "${GREY}$DISK_SPACE_UNCHANGED_MSG${RESET}"
+    (( MEM_FREED_MB > 0 )) && echo "${GREEN}  ● RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
+    (( space_freed > 0 )) && echo "${GREEN}  ● Disk Cleaned $(human_readable_space $space_freed)${RESET}" || echo "${GREY}$DISK_SPACE_UNCHANGED_MSG${RESET}"
     # Script execution time
     SCRIPT_END_TIME=$(date +%s)
     if [[ -n "$SCRIPT_START_TIME" ]]; then
       local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
-      printf "${GREEN}  Execution Time %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
+      printf "${GREEN}  ● Execution Time %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
     fi
     echo ""
   fi
@@ -966,12 +974,13 @@ print_system_details(){
   echo "Build     $OS_BUILD"
   echo "Uptime    $UPTIME"
   if [[ "$ACTIVE_IF" == "No active interface" ]]; then
-    echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREEN}"
+    echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
-    echo "Internet  $INTERNET_AVAILABLE"
+    echo "Internet  ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
   fi
   echo "NetIface  $ACTIVE_IF"
   echo "IP        $IP"
+  echo "Real IP   $REAL_IP"
   echo "MAC       $MAC"
   echo "${RESET}"
 }
@@ -1002,6 +1011,7 @@ print_ram_info() {
   # Memory Pressure
   local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
   # Print the summary
+  echo "${BCYAN}$RAM_INFO${RESET}"
   echo "${GREY}"
   echo "Total RAM  : ${total_gb} GB"
   echo "Free RAM   : ${free_mb} MB"
@@ -1101,7 +1111,7 @@ clean_old_downloads
 # Step 9: Homebrew Cleanup
 clean_homebrew
 
-# Step 10: Purge inactive memory (if possible)
+# Step 10: Purge inactive memory
 print_ram_info
 
 # Print the cleanup summary at the end
