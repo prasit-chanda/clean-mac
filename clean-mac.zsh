@@ -153,8 +153,8 @@ HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="coreutils installation failed. Please try ma
 HOMEBREW_INSTALL_FAILED_MSG="Homebrew installation failed. Visit https://brew.sh/ for manual setup"
 HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew installed successfully"
 HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="coreutils not found. Manual installation may be required"
-HOMEBREW_INSTALLED_COREUTIL_MSG="coreutils is already installed"
-HOMEBREW_INSTALLED_MSG="Homebrew is already installed on your system"
+HOMEBREW_INSTALLED_COREUTIL_MSG="  ● coreutils is already installed"
+HOMEBREW_INSTALLED_MSG="  ● Homebrew is already installed on your system"
 HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be offline"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils not installed. Please check your Homebrew setup"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew is not installed"
@@ -162,9 +162,9 @@ HOMEBREW_OK="  ✓ Homebrew cleanup completed successfully"
 HOMEBREW_INTERNET_CHECK="Checking internet connectivity. DNS: $DNS_SERVER"
 HOMEBREW_INTERNET_DOWN="Internet not available. Please check your connection"
 HOMEBREW_INTERNET_UP="Internet connection is active"
-HOMEBREW_CLEAN_AR="Removing unnecessary packages not directly installed"
-HOMEBREW_CLEAN_OV="Cleaning up old versions of Homebrew packages"
-HOMEBREW_CLEAN_CACHE="Clearing contents of the Homebrew cache directory"
+HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
+HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
+HOMEBREW_CLEAN_CACHE=" ➜ Clearing contents of the Homebrew cache directory"
 INTERNET_AVAILABLE="✓ Connected"
 INTERNET_AVAILABLE_MSG="  ✓ Internet connection is active"
 INTERNET_UNAVAILABLE="✖ Disconnected"
@@ -174,22 +174,22 @@ IOS_BACKUP_FOUND_MSG="Old iOS backups located"
 IOS_BACKUP_NONE_MSG="No outdated iOS backups found"
 IOS_BACKUP_REMOVED_MSG="Outdated iOS backups removed"
 IOS_NONE="  ● No iOS backups were detected"
-IOS_BACKUP_NOT_DETECTED="No connected iOS devices detected"
+IOS_BACKUP_NOT_DETECTED=" ➜ No connected iOS devices detected"
 LOG_CLEAN_MSG="Log files already clean"
 LOG_FILE_CLEANED_MSG="Old log files successfully removed"
 LOG_NONE="  ● No old log files to delete"
 MEM_NONE="  ● No memory to free at this time"
 MEM_OK="  ✓ Memory was cleared to enhance performance"
 MEMORY_SPACE_UNCHANGED_MSG="  ● No changes in memory usage detected"
-NO_DOCKER_ON_SYS="Docker installation not detected or unavailable"
-NO_FILES_TO_CLEAN_MSG="No files detected for cleanup"
+NO_DOCKER_ON_SYS=" ➜ Docker installation not detected or unavailable"
+NO_FILES_TO_CLEAN_MSG=" ➜ No files detected for cleanup"
 NO_HOMEBREW="Homebrew is not available in the system path"
-NO_IOS_DEVICE="No iOS devices are connected to the system"
+NO_IOS_DEVICE=" ➜ No iOS devices are connected to the system"
 NO_LOG_CLEAN="Log files are already clean"
-NO_MOUNTED_VOLUME_MSG="No external storage devices detected"
+NO_MOUNTED_VOLUME_MSG=" ➜ No external storage devices detected"
 NO_MOUNTED_VOLUME_MSG_2="No active mounts for external devices"
 NOT_ZSH_MSG="This script is optimized for Zsh. Please switch your shell."
-OSASCRIPT_AVAILABLE_MSG="osascript is available"
+OSASCRIPT_AVAILABLE_MSG="  ● osascript is available"
 OSASCRIPT_INSTALL_ASK_MSG="Would you like to install osascript via Homebrew? (y/n) "
 OSASCRIPT_INSTALL_CANT_MSG="osascript cannot be installed automatically. Please install manually."
 OSASCRIPT_INSTALL_FAILED_MSG="osascript installation failed. Manual installation is required."
@@ -204,7 +204,7 @@ PURGE_CLEANED_MSG="RAM purge completed"
 PURGE_NOT_AVAILABLE_MSG="The 'purge' command is not available on this system"
 RAM_INFO="Memory Details"
 RAM_SCAN="Scanning RAM to improve system performance"
-RAM_CLEAN="RAM has been refreshed to boost efficiency"
+RAM_CLEAN=" ➜ RAM has been refreshed to boost efficiency"
 RAM_PURGE_MISS="Please ensure the 'purge' command is installed and accessible"
 OLD_FILE_CLEAN="Scanning Downloads folder for files older than 7 days"
 OLD_LOG_CLEAN="Scanning system logs older than 7 days"
@@ -236,7 +236,7 @@ SYSTEM_TRASH_CLEAN_MSG="System Trash is already empty"
 SYSTEM_TRASH_CLEANED_MSG="System Trash emptied successfully"
 SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="Unable to access System Trash"
 TRASH_CLEAN_MSG="User Trash has been emptied"
-TRASH_FILE_CLEANED_MSG="Deleted files from Trash"
+TRASH_FILE_CLEANED_MSG="file(s) deleted from Trash"
 TRASH_NONE="  ● Trash is already empty"
 TRASH_USER_CLEANED_MSG="Trash has been cleared"
 TRASH_VOLUME_CLEAN_MSG="Volume Trash is already empty"
@@ -516,7 +516,7 @@ clean_old_downloads() {
     DOWNLOADS_CLEANED=0
   else
     for file in "${old_files[@]}"; do
-      echo "${GREY}Cleaning File: $file${RESET}"
+      echo "${GREY} ➜ Cleaning File: $file${RESET}"
       command rm -f -- "$file"
     done
     DOWNLOADS_CLEANED=${#old_files[@]}
@@ -540,7 +540,7 @@ clean_old_logs() {
     LOG_CLEANED=0
   else
     for file in "${old_logs[@]}"; do
-      echo "${GREY}Cleaning LOG File: $file${RESET}"
+      echo "${GREY} ➜ Cleaning LOG File: $file${RESET}"
       sudo rm -f -- "$file"
     done
     echo "${BGREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
@@ -558,7 +558,7 @@ clean_temp_files() {
   local files_count=$(sudo find "$dir" -type f -mtime +3 | wc -l)
   if [[ $files_count -gt 0 ]]; then
     # Use -delete for efficiency
-    echo "${GREY}Cleaning: 3 days old files from $description${RESET}"
+    echo "${GREY} ➜ Cleaning: 3 days old files from $description${RESET}"
     sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
     echo "${BGREEN}Cleaned $files_count old files from $description${RESET}"
   else
@@ -582,7 +582,7 @@ clean_trash() {
     echo "${BYELLOW}$TRASH_CLEAN_MSG${RESET}"
   else
     for file in "${trash_files[@]}"; do
-      echo "${GREY}Cleaning File: $file${RESET}"
+      echo "${GREY} ➜ Cleaning File: $file${RESET}"
     done
     osascript -e 'tell application "Finder" to empty trash' &>/dev/null
     echo "${BGREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
@@ -601,7 +601,7 @@ clean_trash() {
       TRASH_CLEANED=1
     fi
   else
-    echo "${GREY}Nice try, but the system says no${RESET}"
+    echo "${GREY} ➜ Nice try, but the system says no${RESET}"
     echo "${BYELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
   fi
   # Clean Volume Trashes
@@ -647,10 +647,10 @@ clean_user_caches() {
     dirname=$(basename "$dir")
     # Skip protected cache folders
     if [[ " ${PROTECTED_CACHES[*]} " == *" $dirname "* ]]; then
-      echo "${YELLOW}Skipping Protected Cache Folder: $dir${RESET}"
+      echo "${YELLOW} ➜ Skipping Protected Cache Folder: $dir${RESET}"
     else
-      echo "${GREY}Cleaning User Cache: $dir${RESET}"
-      rm -rf "${dir:?}/"* 2>/dev/null || echo "${RED}Warning: Failed to clean $dir${RESET}"
+      echo "${GREY} ➜ Cleaning User Cache: $dir${RESET}"
+      rm -rf "${dir:?}/"* 2>/dev/null || echo "${RED} ➜ Warning: Failed to clean $dir${RESET}"
       ((UC_FILE_COUNT++))
     fi
   done
@@ -659,8 +659,8 @@ clean_user_caches() {
   echo "${MAGENTA}Scanning: $containers_cache_root${RESET}"
   if [[ -d "$containers_cache_root" ]]; then
     find "$containers_cache_root" -type d -path "*/Data/Library/Caches" | while read -r sandbox_cache; do
-      echo "${GREY}Cleaning Sandboxed Cache: $sandbox_cache${RESET}"
-      rm -rf "${sandbox_cache:?}/"* 2>/dev/null || echo "${RED}Warning: Failed to clean $sandbox_cache${RESET}"
+      echo "${GREY} ➜ Cleaning Sandboxed Cache: $sandbox_cache${RESET}"
+      rm -rf "${sandbox_cache:?}/"* 2>/dev/null || echo "${RED} ➜ Warning: Failed to clean $sandbox_cache${RESET}"
       ((UC_FILE_COUNT++))
     done
   fi
@@ -668,7 +668,7 @@ clean_user_caches() {
   for dir in "${custom_caches[@]}"; do
     echo "${MAGENTA}Scanning: $dir${RESET}"
     if [[ -d $dir ]]; then
-      echo "${GREY}Cleaning Custom Cache: $dir${RESET}"
+      echo "${GREY} ➜ Cleaning Custom Cache: $dir${RESET}"
       rm -rf "${dir:?}/"* 2>/dev/null || echo "${RED}Warning: Failed to clean $dir${RESET}"
       ((UC_FILE_COUNT++))
     else
