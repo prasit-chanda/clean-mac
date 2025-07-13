@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.4.1-20250712-SUZ21
+# Version  : 2.4.6-20250713-E6NJ3
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -84,13 +84,14 @@ TRASH_CLEANED=0
 UC_FILE_COUNT=0
 UPTIME=$(uptime | cut -d ',' -f1 | xargs)
 USER_EXITED=0
+DEPENDENCIES_CHECK=1
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
 IP=$(ipconfig getifaddr "$ACTIVE_IF" 2>/dev/null)
 if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.4.1-20250712-SUZ21"
+VERSION="2.4.6-20250713-E6NJ3"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 PROTECTED_CACHES=(
@@ -103,7 +104,12 @@ PROTECTED_CACHES=(
 
 # ───── Static Text Variables ─────
 
+ASK_USER_MSG="Requests User Consent"
 AUTHOR_COPYRIGHT=" ${AUTHOR} © $(date +%Y) "
+CHK_ENV_MSG_1="Evaluating Runtime Settings"
+CHK_ENV_MSG_2="  ➜ The script is designed for macOS—great to see you're using one"
+CHK_ENV_MSG_3="  ➜ Zsh is a UNIX command-line shell. It's great to see you're using it"
+CHK_ENV_MSG_4="  ➜ Avoiding root is a good practice—running as root poses security risks"
 CLEANING_CACHES_HEADER="Caches"
 CLEANING_CACHES_HINT="Removing temporary cache files to optimize system performance"
 CLEANING_DOCKER_HEADER="Docker"
@@ -126,9 +132,9 @@ CLEANING_XCODE_HEADER="Xcode"
 CLEANING_XCODE_HINT="Removing Xcode build artifacts and unnecessary data"
 CLEANUP_MSG="Cleanup Recap"
 DD_NONE="  ● No DerivedData folder found for Xcode"
-DEPENDENCIES_HEADER="Dependencies"
-DEPENDENCIES_NOT_MSG="Some required tools are missing. Please check your setup"
-DEPENDENCIES_OK_MSG="All necessary dependencies are present and functional"
+DEPENDENCIES_HEADER="Ensure Libraries and Services"
+DEPENDENCIES_NOT_MSG="  ✖ Some required tools are missing. Please check your setup"
+DEPENDENCIES_OK_MSG="  ● All required dependencies are installed and operational"
 DISK_SPACE_UNCHANGED_MSG="  ● No change in disk usage detected"
 DL_NONE="  ● Downloads folder is already clean"
 DOCKER_CLEANING="Cleaning Docker containers, images, and volumes"
@@ -153,8 +159,8 @@ HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="coreutils installation failed. Please try ma
 HOMEBREW_INSTALL_FAILED_MSG="Homebrew installation failed. Visit https://brew.sh/ for manual setup"
 HOMEBREW_INSTALL_SUCCESS_MSG="Homebrew installed successfully"
 HOMEBREW_INSTALLED_COREUTIL_DENIAL_MSG="coreutils not found. Manual installation may be required"
-HOMEBREW_INSTALLED_COREUTIL_MSG="  ● coreutils is already installed"
-HOMEBREW_INSTALLED_MSG="  ● Homebrew is already installed on your system"
+HOMEBREW_INSTALLED_COREUTIL_MSG="  ➜ coreutils is already installed"
+HOMEBREW_INSTALLED_MSG="  ➜ Homebrew is already installed on your system"
 HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be offline"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils not installed. Please check your Homebrew setup"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew is not installed"
@@ -188,18 +194,23 @@ NO_IOS_DEVICE=" ➜ No iOS devices are connected to the system"
 NO_LOG_CLEAN="Log files are already clean"
 NO_MOUNTED_VOLUME_MSG=" ➜ No external storage devices detected"
 NO_MOUNTED_VOLUME_MSG_2="No active mounts for external devices"
-NOT_ZSH_MSG="This script is optimized for Zsh. Please switch your shell."
-OSASCRIPT_AVAILABLE_MSG="  ● osascript is available"
+NOT_ZSH_MSG="  ● This script is optimized for Zsh. Please switch your shell."
+OSASCRIPT_AVAILABLE_MSG="  ➜ osascript is available"
 OSASCRIPT_INSTALL_ASK_MSG="Would you like to install osascript via Homebrew? (y/n) "
 OSASCRIPT_INSTALL_CANT_MSG="osascript cannot be installed automatically. Please install manually."
 OSASCRIPT_INSTALL_FAILED_MSG="osascript installation failed. Manual installation is required."
 OSASCRIPT_INSTALL_SKIPPED_MSG="osascript installation was skipped"
 OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed successfully"
 OSASCRIPT_NOT_INSTALLED_MSG="osascript is not installed on this system"
-PROMPT_USER_CONSENT_APPROVAL="✓ $(whoami) confirmed. Proceeding with script execution"
-PROMPT_USER_CONSENT_DENIAL="✖ $(whoami) declined. Exiting script"
-PROMPT_USER_CONSENT_MSG="${BYELLOW}Would you like to proceed with the script? (y/n) "
-PROMPT_VALIDATE_MSG="Please respond with 'y' or 'n'"
+PRE_EXE_FAIL_MSG="\n✋🏻 ⭕ ❌\n\n${RESET}${RED}   🚫 Environment or dependency check failed\n\n${RESET}${CYAN}   🔥 Please resolve the detected issues before re-running the script\n"
+PRE_EXE_MSG_1="Pre-execution Check"
+PRE_EXE_MSG_2="Validate environment and dependencies before script execution"
+PRE_EXE_MSG_3="Guidelines"
+PRE_EXE_MSG_4="Authenticate User: $(whoami)"
+PROMPT_USER_CONSENT_APPROVAL="  ● $(whoami) confirmed. Proceeding with script execution"
+PROMPT_USER_CONSENT_DENIAL="  ● $(whoami) declined. Exiting script"
+PROMPT_USER_CONSENT_MSG="  ● Would you like to proceed with the script? (y/n) "
+PROMPT_VALIDATE_MSG="  ● Please respond with 'y' or 'n'"
 PURGE_CLEANED_MSG="RAM purge completed"
 PURGE_NOT_AVAILABLE_MSG="The 'purge' command is not available on this system"
 RAM_INFO="Memory Details"
@@ -208,19 +219,19 @@ RAM_CLEAN=" ➜ RAM has been refreshed to boost efficiency"
 RAM_PURGE_MISS="Please ensure the 'purge' command is installed and accessible"
 OLD_FILE_CLEAN="Scanning Downloads folder for files older than 7 days"
 OLD_LOG_CLEAN="Scanning system logs older than 7 days"
-ROOT_WARNING_MSG="Running as root is not recommended. Exiting for safety"
+ROOT_WARNING_MSG="  ➜ Running as root is not recommended. Exiting for safety"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
 SCRIPT_DESCRIPTION="clean-mac.zsh is your Mac’s unofficial janitor — the one that actually shows up. 
 With a single command, it scrubs away system and user junk: caches, logs, temporary 
 clutter, dusty old downloads, and whatever’s been rotting in your Trash. It even cleans 
 up after Homebrew’s bad habits (because who else will?). At the end, it smugly tells you 
 how much space it saved — and logs every step, just in case you want receipts."
-SCRIPT_EXIT_MSG=" ● Press ⌃ + Z anytime to pause or exit"
-SCRIPT_INTERNET_MSG=" ● Internet connection needed for cleanup and checks"
+SCRIPT_EXIT_MSG="  ➜ Press ⌃ + Z anytime to pause or exit"
+SCRIPT_INTERNET_MSG="  ➜ Internet connection needed for cleanup and checks"
 SCRIPT_START_MSG="Starting clean-mac: optimizing your system now"
-SCRIPT_SUDO_FAIL_MSG="✖ Sudo access not granted. Exiting for safety"
-SCRIPT_SUDO_MSG=" ● This script may request your administrator password"
-SCRIPT_TERMINAL_MSG=" ● Please run this in the macOS Terminal"
+SCRIPT_SUDO_FAIL_MSG="✖ Sudo access not granted. Exiting script for safety"
+SCRIPT_SUDO_MSG="  ➜ This script may request your administrator password"
+SCRIPT_TERMINAL_MSG="  ➜ Please run this in the macOS Terminal"
 SUM_TEXT_CACHE="  ✓ User Caches cleaned "
 SUM_TEXT_LOG="  ✓ Old log files cleaned "
 SUM_TEXT_TRASH="  ✓ Trash cleaned "
@@ -254,35 +265,34 @@ XCODE_DERIVED_NONE_MSG="Xcode DerivedData folder already clean"
 
 # This function asks the user for consent to continue
 ask_user_consent() {
+  echo -e "${RESET}${BCYAN}$ASK_USER_MSG${RESET}\n"
   while true; do
-    print -nP "$PROMPT_USER_CONSENT_MSG"
+    print -nP "${YELLOW}$PROMPT_USER_CONSENT_MSG"
     read answer
-    echo ""
     case "$answer" in
       [yY][eE][sS]|[yY])
-        echo "${BGREEN}$PROMPT_USER_CONSENT_APPROVAL${RESET}"
-        echo ""
+        echo "${GREEN}$PROMPT_USER_CONSENT_APPROVAL${RESET}"
+        DEPENDENCIES_CHECK=1
         break
         ;;
       [nN][oO]|[nN])
-        echo "${BRED}$PROMPT_USER_CONSENT_DENIAL${RESET}"
-        echo ""
-        USER_EXITED=1   
-        print_summary
-        exit 1
+        echo "${RED}$PROMPT_USER_CONSENT_DENIAL${RESET}"
+        DEPENDENCIES_CHECK=0
+        break
         ;;
       *)
-        echo "${BYELLOW}$PROMPT_VALIDATE_MSG${RESET}"
+        echo "${YELLOW}$PROMPT_VALIDATE_MSG${RESET}"
         ;;
     esac
   done
+  echo ""
 }
 
 # This function checks execution dependencies (Homebrew, coreutils, osascript)
 check_dependencies() {
   local dependencies_status=0
-  fancy_text_header "$DEPENDENCIES_HEADER"
-  echo ""
+  echo -e "${RESET}${BCYAN}$DEPENDENCIES_HEADER${RESET}\n"
+  sleep 1
   # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
@@ -295,8 +305,9 @@ check_dependencies() {
       dependencies_status=1
     fi
   else
-    echo "${GREY}$HOMEBREW_INSTALLED_MSG${RESET}"
+    echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
+  sleep 1
   # --- Coreutils Check ---
   if ! brew ls --versions coreutils >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
@@ -319,8 +330,9 @@ check_dependencies() {
         ;;
     esac
   else
-    echo "${GREY}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
+    echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
   fi
+  sleep 1
   # --- osascript Check (macOS-only) ---
   if ! command -v osascript >/dev/null 2>&1; then
     echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
@@ -348,14 +360,15 @@ check_dependencies() {
       dependencies_status=1
     fi
   else
-    echo "${GREY}$OSASCRIPT_AVAILABLE_MSG${RESET}"
+    echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
-  sleep 10
+  sleep 3
   # --- Final Result ---
   if [[ $dependencies_status -eq 0 ]]; then
-    echo "${BGREEN}$DEPENDENCIES_OK_MSG${RESET}"
+    echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
   else
-    echo "${BRED}$DEPENDENCIES_NOT_MSG${RESET}"
+     DEPENDENCIES_CHECK=0
+    echo "${RED}$DEPENDENCIES_NOT_MSG${RESET}"
   fi
   echo ""
 }
@@ -375,27 +388,32 @@ check_internet() {
 
 # This functions checks Runtime Environment
 check_runtime_environment(){
-  # Check if running in zsh console
-  if [[ -z "$ZSH_VERSION" ]]; then
-    echo ""
-    echo "${RED}$NOT_ZSH_MSG${RESET}" >&2
-    echo ""
-    exit 1
-  fi
+  echo -e "${RESET}${BCYAN}$CHK_ENV_MSG_1${RESET}\n"
+  sleep 1
   # Check if running in macOS
   if [[ "$(uname)" != "Darwin" ]]; then
-    echo ""
     echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
-    echo ""
-    exit 1
+    DEPENDENCIES_CHECK=0
+  else
+    echo "${GREEN}$CHK_ENV_MSG_2${RESET}"
   fi
+  sleep 1
+  # Check if running in zsh console
+  if [[ -z "$ZSH_VERSION" ]]; then
+    echo "${RED}$NOT_ZSH_MSG${RESET}"
+    DEPENDENCIES_CHECK=0
+  else
+    echo "${GREEN}$CHK_ENV_MSG_3${RESET}"
+  fi
+  sleep 1
   # Warn if running as root (not recommended)
   if [[ "$EUID" -eq 0 ]]; then
-    echo ""
     echo "${RED}$ROOT_WARNING_MSG${RESET}"  >&2
-    echo ""
-    exit 1
+    DEPENDENCIES_CHECK=0
+  else
+    echo "${GREEN}$CHK_ENV_MSG_4${RESET}"
   fi
+  echo ""
 }
 
 # This function clean temporary files older than 3 days 
@@ -489,10 +507,15 @@ clean_homebrew() {
 clean_memory_ram() {
   echo "${MAGENTA}$RAM_SCAN${RESET}"
   if command -v purge >/dev/null 2>&1; then
-    sudo purge >/dev/null 2>&1 && sleep 1
-    echo "${GREY}$RAM_CLEAN${RESET}"
-    echo "${BGREEN}${PURGE_CLEANED_MSG}${RESET}"
-    RAM_PURGED=1
+    if sudo purge >/dev/null 2>&1 && sleep 1; then
+      echo "${GREY}$RAM_CLEAN${RESET}"
+      echo "${BGREEN}${PURGE_CLEANED_MSG}${RESET}"
+      RAM_PURGED=1
+    else
+      echo "${GREY}$RAM_PURGE_MISS${RESET}"
+      echo "${BRED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
+      RAM_PURGED=0
+    fi
   else
     echo "${GREY}$RAM_PURGE_MISS${RESET}"
     echo "${BRED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
@@ -849,6 +872,43 @@ human_readable_space() {
   fi
 }
 
+# This function validates environment and dependencies before script execution
+pre_execution_check(){
+  clear
+  echo ""
+  fancy_title_box "$SCRIPT_BOX_TITLE"
+  echo ""
+  fancy_text_header "$PRE_EXE_MSG_1"
+  print_hints "$PRE_EXE_MSG_2"
+  # Instructions
+  echo -e "${RESET}${BCYAN}$PRE_EXE_MSG_3${RESET}\n"
+  sleep 1
+  echo "${GREY}$SCRIPT_SUDO_MSG${RESET}"
+  echo "${GREY}$SCRIPT_TERMINAL_MSG${RESET}"
+  echo "${GREY}$SCRIPT_INTERNET_MSG${RESET}"
+  echo "${GREY}$SCRIPT_EXIT_MSG${RESET}\n"
+  # Check Runtime Environment
+  check_runtime_environment 
+  # Check for required dependencies before proceeding
+  if [[ "$DEPENDENCIES_CHECK" -eq 1 ]]; then
+    check_dependencies
+  fi
+  # Ask user for consent to continue (can exit here)
+  if [[ "$DEPENDENCIES_CHECK" -eq 1 ]]; then
+    ask_user_consent
+  fi
+  if [[ "$DEPENDENCIES_CHECK" -eq 0 ]]; then
+    echo "${BRED}$PRE_EXE_FAIL_MSG${RESET}"
+    USER_EXITED=1
+    print_summary
+    exit 1
+  else
+    # Prompt for sudo and handle interruption
+    echo -e "${RESET}\n${BCYAN}$PRE_EXE_MSG_4${RESET}\n"
+    prompt_sudo
+  fi
+}
+
 # This function prints Homebrew information
 print_brew_info() {
   echo "${BCYAN}$HOMEBREW_INFO_HEADER_MSG${RESET}"
@@ -897,11 +957,8 @@ print_script_info(){
   echo "${GREY}SCAN ID $(generate_random_string)${RESET}"
   echo "${GREY}Version $VERSION${RESET}"
   echo "${GREY}Author  $AUTHOR${RESET}"
-  echo "\n${BCYAN}$SCRIPT_START_MSG${RESET}\n"
-  echo "${GREY}$SCRIPT_SUDO_MSG${RESET}"
-  echo "${GREY}$SCRIPT_TERMINAL_MSG${RESET}"
-  echo "${GREY}$SCRIPT_INTERNET_MSG${RESET}"
-  echo "${RED}$SCRIPT_EXIT_MSG${RESET}\n"
+  echo "\n${BCYAN}$SCRIPT_START_MSG${RESET}"
+  echo "${GREEN}$(whoami) confirmed. Proceeding with script execution${RESET}\n"
 }
 
 # This function prints clean-up summary at the end of the script
@@ -936,7 +993,11 @@ print_summary() {
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
     echo -e "\n${BCYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
-    (( MEM_FREED_MB > 0 )) && echo "${GREEN}  ● RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
+    if [[ "$RAM_PURGED" -eq 1 ]]; then
+      (( MEM_FREED_MB > 0 )) && echo "${GREEN}  ● RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
+    else
+      echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
+    fi
     (( space_freed > 0 )) && echo "${GREEN}  ● Disk Cleaned $(human_readable_space $space_freed)${RESET}" || echo "${GREY}$DISK_SPACE_UNCHANGED_MSG${RESET}"
     # Script execution time
     SCRIPT_END_TIME=$(date +%s)
@@ -945,11 +1006,11 @@ print_summary() {
       printf "${GREEN}  ● Execution Time %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
     fi
     echo ""
+    echo "${GREY}$FOOTER_LOG_DIR_MSG${RESET}"
+    echo "${GREY}$FOOTER_LOG_FILE_MSG${RESET}"
   fi
   # Footer info
-  echo "${GREY}$FOOTER_LOG_DIR_MSG"
-  echo "$FOOTER_LOG_FILE_MSG"
-  echo "$FOOTER_SCRIPT_VERSION_MSG${RESET}"
+  echo "${GREY}$FOOTER_SCRIPT_VERSION_MSG${RESET}"
   echo ""
   fancy_text_header "$AUTHOR_COPYRIGHT"
   echo ""
@@ -1029,14 +1090,14 @@ prompt_sudo(){
   sudo -v
   if ! sudo -v; then
     echo ""
-    echo "${RED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
+    echo "${BRED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
     echo ""
     USER_EXITED=1
     print_summary
     exit 1
   else
     # Keep sudo alive in the background to avoid password prompts
-    while true; do sudo -n true; sleep 1200; kill -0 "$$" || exit; done 2>/dev/null &
+    while true; do sudo -n true; sleep 120; kill -0 "$$" || exit; done 2>/dev/null &
   fi
 }
 
@@ -1054,14 +1115,14 @@ write_log(){
 
 # ───── Execution STARTS ─────
 
-# Check Runtime Environment
-check_runtime_environment 
+# Measure free disk space before cleanup
+space_before=$(get_free_space)
+
+# Check Prerequisites for execution
+pre_execution_check
 
 # Script Starts
 clear
-
-# Measure free disk space before cleanup
-space_before=$(get_free_space)
 
 # Create log file and redirect output
 write_log
@@ -1074,15 +1135,6 @@ print_script_info
 
 # Print System Details
 print_system_details
-
-# Check for required dependencies before proceeding
-check_dependencies
-
-# Ask user for consent to continue (can exit here)
-ask_user_consent
-
-# Prompt for sudo and handle interruption
-prompt_sudo
 
 # Step 1: Clear User Caches
 clean_user_caches
