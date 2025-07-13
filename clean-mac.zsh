@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.4.6-20250713-E6NJ3
+# Version  : 2.4.6-20250713-J55RT
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -23,22 +23,22 @@ setopt nullglob extended_glob localoptions no_nomatch
 RESET=$'\e[0m'
 # REGULAR Colors
 BLACK=$'\e[30m'
-RED=$'\e[31m' #Good
-GREEN=$'\e[32m' #Good
-GREY=$'\e[90m' #Good
+RED=$'\e[31m'
+GREEN=$'\e[32m'
+GREY=$'\e[90m'
 YELLOW=$'\e[33m'
 BLUE=$'\e[34m'
-MAGENTA=$'\e[35m' #Good
+MAGENTA=$'\e[35m'
 CYAN=$'\e[36m'
 WHITE=$'\e[37m'
 # BOLD Colors
 BBLACK=$'\e[1;30m'
-BRED=$'\e[1;31m' #Good
-BGREEN=$'\e[1;32m' #Good
-BGREY=$'\e[1;90m' #Good
+BRED=$'\e[1;31m'
+BGREEN=$'\e[1;32m'
+BGREY=$'\e[1;90m'
 BYELLOW=$'\e[1;33m'
 BBLUE=$'\e[1;34m'
-BMAGENTA=$'\e[1;35m' #Good
+BMAGENTA=$'\e[1;35m'
 BCYAN=$'\e[1;36m'
 BWHITE=$'\e[1;37m'
 
@@ -46,7 +46,7 @@ BWHITE=$'\e[1;37m'
 
 ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
 : ${ACTIVE_IF:="No active interface"}
-AUTHOR="Prasit Chanda"
+AUTHOR="Prasit B Chanda"
 CPU="$(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.physicalcpu) CPU Core"
 DNS_SERVER="1.1.1.1"
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
@@ -62,11 +62,15 @@ if [[ "$ACTIVE_IF" != "No active interface" ]]; then
 else
   MAC="MAC not found"
 fi
+MAC_UUID=$(ioreg -rd1 -c IOPlatformExpertDevice | awk -F'"' '/IOPlatformUUID/ { print $4 }')
+UP_TIME="$(uptime | sed 's/.*up //; s/,.*//' | xargs)"
 MEM=$(($(sysctl -n hw.memsize) / 1024 / 1024 / 1024))" GB"
 MEM_BEFORE=$(vm_stat | awk '/Pages free/ { print $3 }' | sed 's/\\.//')
 MEM_BEFORE_MB=$(( MEM_BEFORE * 4096 / 1024 / 1024 ))
 MODEL=$(sysctl -n hw.model)
-HOST=$(sysctl -n kern.hostname)
+ARCH=$(uname -m)
+HOST=$(scutil --get ComputerName)
+USER="$(id -F) ($(whoami))"
 OS_BUILD=$(sw_vers -buildVersion)
 OS_VERSION=$(sw_vers -productVersion)
 SCRIPT_START_TIME=$(date +%s)
@@ -82,7 +86,6 @@ DEVICE_SUPPORT_COUNT=0
 DOCKER_CLEANED=0
 TRASH_CLEANED=0
 UC_FILE_COUNT=0
-UPTIME=$(uptime | cut -d ',' -f1 | xargs)
 USER_EXITED=0
 DEPENDENCIES_CHECK=1
 IOS_BACKUP_DIR="${HOME}/Library/Application Support/MobileSync/Backup"
@@ -91,7 +94,8 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.4.6-20250713-E6NJ3"
+VERSION="2.4.6-20250713-J55RT"
+LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
 PROTECTED_CACHES=(
@@ -146,6 +150,8 @@ DOCKER_SCAN="Scanning Docker for unused containers, images, and volumes"
 DOWNLOADS_CLEAN_MSG="Downloads folder is already clean"
 DOWNLOADS_FILE_CLEANED_MSG="Outdated downloads removed successfully"
 DS_NONE="  ● Xcode DeviceSupport - no connected device detected"
+ENV_DEPENDENCIES_OK_MSG="  ● All required runtime environments complied"
+ENV_DEPENDENCIES_FAIL_MSG="  ✖ Some runtime environments are missing. Please check your environment"
 FOOTER_LOG_DIR_MSG="Folder   $WD"
 FOOTER_LOG_FILE_MSG="Log      $LOG_FILE"
 FOOTER_SCRIPT_VERSION_MSG="Version  $VERSION"
@@ -202,13 +208,14 @@ OSASCRIPT_INSTALL_FAILED_MSG="osascript installation failed. Manual installation
 OSASCRIPT_INSTALL_SKIPPED_MSG="osascript installation was skipped"
 OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed successfully"
 OSASCRIPT_NOT_INSTALLED_MSG="osascript is not installed on this system"
-PRE_EXE_FAIL_MSG="\n✋🏻 ⭕ ❌\n\n${RESET}${RED}   🚫 Environment or dependency check failed\n\n${RESET}${CYAN}   🔥 Please resolve the detected issues before re-running the script\n"
+PRE_EXE_FAIL_MSG_1=" ♱ Script fail due to dependencies, consent, or authentication"
+PRE_EXE_FAIL_MSG_2=" ● Fix the detected issues before re-running the script"
 PRE_EXE_MSG_1="Pre-execution Check"
 PRE_EXE_MSG_2="Validate environment and dependencies before script execution"
 PRE_EXE_MSG_3="Guidelines"
-PRE_EXE_MSG_4="Authenticate User: $(whoami)"
-PROMPT_USER_CONSENT_APPROVAL="  ● $(whoami) confirmed. Proceeding with script execution"
-PROMPT_USER_CONSENT_DENIAL="  ● $(whoami) declined. Exiting script"
+PRE_EXE_MSG_4="Authenticate User: $USER"
+PROMPT_USER_CONSENT_APPROVAL="  ● $USER confirmed. Proceeding with script execution"
+PROMPT_USER_CONSENT_DENIAL="  ● $USER declined. Exiting script"
 PROMPT_USER_CONSENT_MSG="  ● Would you like to proceed with the script? (y/n) "
 PROMPT_VALIDATE_MSG="  ● Please respond with 'y' or 'n'"
 PURGE_CLEANED_MSG="RAM purge completed"
@@ -221,17 +228,18 @@ OLD_FILE_CLEAN="Scanning Downloads folder for files older than 7 days"
 OLD_LOG_CLEAN="Scanning system logs older than 7 days"
 ROOT_WARNING_MSG="  ➜ Running as root is not recommended. Exiting for safety"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
-SCRIPT_DESCRIPTION="clean-mac.zsh is your Mac’s unofficial janitor — the one that actually shows up. 
-With a single command, it scrubs away system and user junk: caches, logs, temporary 
-clutter, dusty old downloads, and whatever’s been rotting in your Trash. It even cleans 
-up after Homebrew’s bad habits (because who else will?). At the end, it smugly tells you 
-how much space it saved — and logs every step, just in case you want receipts."
+SCRIPT_DESCRIPTION="Cleans caches, logs, downloads, Trash, and Homebrew clutter—efficiently, transparently"
 SCRIPT_EXIT_MSG="  ➜ Press ⌃ + Z anytime to pause or exit"
+SCRIPT_INFO_MSG_1=" ➜ Runtime environments meet compatibility requirements"
+SCRIPT_INFO_MSG_2=" ➜ Required libraries and services are properly configured"
+SCRIPT_INFO_MSG_3=" ➜ User consent secured, as confirmed by $USER"
+SCRIPT_INFO_MSG_4=" ➜ $USER has been successfully authenticated and authorized"
 SCRIPT_INTERNET_MSG="  ➜ Internet connection needed for cleanup and checks"
 SCRIPT_START_MSG="Starting clean-mac: optimizing your system now"
 SCRIPT_SUDO_FAIL_MSG="✖ Sudo access not granted. Exiting script for safety"
 SCRIPT_SUDO_MSG="  ➜ This script may request your administrator password"
 SCRIPT_TERMINAL_MSG="  ➜ Please run this in the macOS Terminal"
+STATUS_ABORT="Abort"
 SUM_TEXT_CACHE="  ✓ User Caches cleaned "
 SUM_TEXT_LOG="  ✓ Old log files cleaned "
 SUM_TEXT_TRASH="  ✓ Trash cleaned "
@@ -242,10 +250,27 @@ SUM_TEXT_ISO_DS="  ✓ Xcode DeviceSupport cleaned "
 SUMMARY_SUB_TITLE_1_MSG="System Overview"
 SUMMARY_SUB_TITLE_2_MSG="Cleanup Actions"
 SUMMARY_SUB_TITLE_3_MSG="Post-Cleanup Report"
-SYSTEM_DETAILS_HEADER="System Information"
+SYSTEM_DETAILS_HEADER="System"
 SYSTEM_TRASH_CLEAN_MSG="System Trash is already empty"
 SYSTEM_TRASH_CLEANED_MSG="System Trash emptied successfully"
 SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="Unable to access System Trash"
+TASK_HEADER="  ● Do you know what this script does? Please read carefully\n"
+TASK_PREREQUISITE_CHECK="  ➜ Check system requirements and readiness for script execution"
+TASK_INSTALL_DEPENDENCIES="  ➜ Automatically install any required tools not already present"
+TASK_LOGGING_SETUP="  ➜ Create a log file and redirect all output for review"
+TASK_PRINT_SYS_INFO="  ➜ Print essential details about the system environment"
+TASK_CLEAR_USER_CACHE="  ➜ Remove unnecessary cached files from the user's home directory"
+TASK_CLEAN_IOS_BACKUPS="  ➜ Clean up old backups from iOS devices if connected"
+TASK_CLEAN_XCODE_DATA="  ➜ Clear DerivedData and device support files generated by Xcode"
+TASK_CLEAN_DOCKER="  ➜ Prune unused Docker containers, images, and volumes"
+TASK_DELETE_OLD_LOGS="  ➜ Delete system logs older than 7 days"
+TASK_EMPTY_TRASH="  ➜ Empty the Trash for the current user, root, and any mounted volumes"
+TASK_REMOVE_TEMP_FILES="  ➜ Remove temp files that are older than 3 days"
+TASK_CLEAN_DOWNLOADS="  ➜ Delete downloaded files older than 7 days from the Downloads folder"
+TASK_HOMEBREW_CLEANUP="  ➜ Perform Homebrew cache and outdated package cleanup"
+TASK_PURGE_INACTIVE_MEMORY="  ➜ Free up unused memory to improve system responsiveness"
+TASK_SHOW_SUMMARY="  ➜ Present a summary of reclaimed space and completed tasks"
+TASK_CLEAN_EXIT="  ➜ Ensure all background jobs are terminated safely on script exit"
 TRASH_CLEAN_MSG="User Trash has been emptied"
 TRASH_FILE_CLEANED_MSG="file(s) deleted from Trash"
 TRASH_NONE="  ● Trash is already empty"
@@ -265,9 +290,10 @@ XCODE_DERIVED_NONE_MSG="Xcode DerivedData folder already clean"
 
 # This function asks the user for consent to continue
 ask_user_consent() {
-  echo -e "${RESET}${BCYAN}$ASK_USER_MSG${RESET}\n"
+  echo -e "${RESET}${BCYAN}$ASK_USER_MSG${RESET}"
+  provide_what_script-does
   while true; do
-    print -nP "${YELLOW}$PROMPT_USER_CONSENT_MSG"
+    print -nP "${BYELLOW}$PROMPT_USER_CONSENT_MSG${RESET}"
     read answer
     case "$answer" in
       [yY][eE][sS]|[yY])
@@ -292,7 +318,7 @@ ask_user_consent() {
 check_dependencies() {
   local dependencies_status=0
   echo -e "${RESET}${BCYAN}$DEPENDENCIES_HEADER${RESET}\n"
-  sleep 1
+  sleep 0.2
   # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
@@ -307,7 +333,7 @@ check_dependencies() {
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
-  sleep 1
+  sleep 0.2
   # --- Coreutils Check ---
   if ! brew ls --versions coreutils >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
@@ -332,7 +358,7 @@ check_dependencies() {
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
   fi
-  sleep 1
+  sleep 0.2
   # --- osascript Check (macOS-only) ---
   if ! command -v osascript >/dev/null 2>&1; then
     echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
@@ -362,7 +388,7 @@ check_dependencies() {
   else
     echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
-  sleep 3
+  sleep 0.2
   # --- Final Result ---
   if [[ $dependencies_status -eq 0 ]]; then
     echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
@@ -389,7 +415,7 @@ check_internet() {
 # This functions checks Runtime Environment
 check_runtime_environment(){
   echo -e "${RESET}${BCYAN}$CHK_ENV_MSG_1${RESET}\n"
-  sleep 1
+  sleep 0.2
   # Check if running in macOS
   if [[ "$(uname)" != "Darwin" ]]; then
     echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
@@ -397,7 +423,7 @@ check_runtime_environment(){
   else
     echo "${GREEN}$CHK_ENV_MSG_2${RESET}"
   fi
-  sleep 1
+  sleep 0.2
   # Check if running in zsh console
   if [[ -z "$ZSH_VERSION" ]]; then
     echo "${RED}$NOT_ZSH_MSG${RESET}"
@@ -405,13 +431,18 @@ check_runtime_environment(){
   else
     echo "${GREEN}$CHK_ENV_MSG_3${RESET}"
   fi
-  sleep 1
+  sleep 0.2
   # Warn if running as root (not recommended)
   if [[ "$EUID" -eq 0 ]]; then
     echo "${RED}$ROOT_WARNING_MSG${RESET}"  >&2
     DEPENDENCIES_CHECK=0
   else
     echo "${GREEN}$CHK_ENV_MSG_4${RESET}"
+  fi
+  if [[ "$DEPENDENCIES_CHECK" -eq 1 ]]; then
+    echo "${GREEN}$ENV_DEPENDENCIES_OK_MSG${RESET}"
+  else
+    echo "${RED}$ENV_DEPENDENCIES_FAIL_MSG${RESET}"
   fi
   echo ""
 }
@@ -507,7 +538,7 @@ clean_homebrew() {
 clean_memory_ram() {
   echo "${MAGENTA}$RAM_SCAN${RESET}"
   if command -v purge >/dev/null 2>&1; then
-    if sudo purge >/dev/null 2>&1 && sleep 1; then
+    if sudo purge >/dev/null 2>&1 && sleep 0.5; then
       echo "${GREY}$RAM_CLEAN${RESET}"
       echo "${BGREEN}${PURGE_CLEANED_MSG}${RESET}"
       RAM_PURGED=1
@@ -802,22 +833,12 @@ fancy_text_header() {
   printf "${RESET}"
 }
 
-# Generates a random alphanumeric string like "A1B2C-3D4E-F5G6-H7I8-J9K0"
+# Generates a random alphanumeric string like "A1B2C-3ED4E-F5G6-H7I8-J9K0"
 generate_random_string() {
-  local chars=( {A..Z} {1..9} 0 )  # 0 placed after 1-9 for correct digit range
-  local num_chars=${#chars[@]}
-  local str=""
-  if (( num_chars == 0 )); then
-    echo "✖ Error: character array is empty!" >&2
-    return 1
-  fi
-  for ((i = 1; i <= 25; i++)); do
-    str+="${chars[RANDOM % num_chars]}"
-    if (( i % 5 == 0 && i != 25 )); then
-      str+="-"
-    fi
-  done
-  echo "$str"
+  local raw key
+  raw=$(LC_ALL=C tr -dc 'A-Z0-9' < /dev/urandom | head -c 25)
+  key="${raw:0:5}-${raw:5:5}-${raw:10:5}-${raw:15:5}-${raw:20:5}"
+  echo "$key"
 }
 
 # This function shows macOS version name
@@ -850,9 +871,9 @@ get_free_space() {
 get_uptime() {
   local uptime_part
   uptime_part=$(uptime | awk -F'up ' '{split($2,a,","); print a[1]}' | sed -E '
-    s/^ *([0-9]+) days?.*/\1 days/;
-    s/^ *([0-9]+):[0-9]+.*/\1 hours/;
-    s/^ *([0-9]+) mins?.*/\1 minutes/;
+    s/^ *([0-9]+) days?.*/\1 day/;
+    s/^ *([0-9]+):[0-9]+.*/\1 hr/;
+    s/^ *([0-9]+) mins?.*/\1 min/;
     s/^\s*$/Just booted/
   ')
   echo "$uptime_part"
@@ -882,10 +903,13 @@ pre_execution_check(){
   print_hints "$PRE_EXE_MSG_2"
   # Instructions
   echo -e "${RESET}${BCYAN}$PRE_EXE_MSG_3${RESET}\n"
-  sleep 1
+  sleep 0.2
   echo "${GREY}$SCRIPT_SUDO_MSG${RESET}"
+  sleep 0.2
   echo "${GREY}$SCRIPT_TERMINAL_MSG${RESET}"
+  sleep 0.2
   echo "${GREY}$SCRIPT_INTERNET_MSG${RESET}"
+  sleep 0.2
   echo "${GREY}$SCRIPT_EXIT_MSG${RESET}\n"
   # Check Runtime Environment
   check_runtime_environment 
@@ -898,7 +922,10 @@ pre_execution_check(){
     ask_user_consent
   fi
   if [[ "$DEPENDENCIES_CHECK" -eq 0 ]]; then
-    echo "${BRED}$PRE_EXE_FAIL_MSG${RESET}"
+    fancy_title_box "$STATUS_ABORT"
+    echo ""
+    echo "${BRED}$PRE_EXE_FAIL_MSG_1${RESET}"
+    echo "${BGREY}$PRE_EXE_FAIL_MSG_2${RESET}\n"
     USER_EXITED=1
     print_summary
     exit 1
@@ -951,14 +978,18 @@ print_hints() {
 
 # This function prints script info as header
 print_script_info(){
+  LOG_ID=$(generate_random_string)
   fancy_title_box "$SCRIPT_BOX_TITLE"
   echo "\n${CYAN}$SCRIPT_DESCRIPTION${RESET}\n"
   echo "${GREY}$DATE${RESET}"
-  echo "${GREY}SCAN ID $(generate_random_string)${RESET}"
+  echo "${GREY}LOG ID  $LOG_ID${RESET}"
   echo "${GREY}Version $VERSION${RESET}"
   echo "${GREY}Author  $AUTHOR${RESET}"
-  echo "\n${BCYAN}$SCRIPT_START_MSG${RESET}"
-  echo "${GREEN}$(whoami) confirmed. Proceeding with script execution${RESET}\n"
+  echo "\n${BCYAN}$SCRIPT_START_MSG${RESET}\n"
+  echo "${GREEN}$SCRIPT_INFO_MSG_1${RESET}"
+  echo "${GREEN}$SCRIPT_INFO_MSG_2${RESET}"
+  echo "${GREEN}$SCRIPT_INFO_MSG_3${RESET}"
+  echo "${GREEN}$SCRIPT_INFO_MSG_4${RESET}\n"
 }
 
 # This function prints clean-up summary at the end of the script
@@ -968,11 +999,13 @@ print_summary() {
     echo ""
     fancy_title_box "$CLEANUP_MSG"
     echo -e "\n${BCYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
-    echo "  Model   $(sysctl -n hw.model 2>/dev/null || echo 'Unknown')"
-    echo "  CPU     $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo 'Unknown')"
-    echo "  RAM     $(( $(sysctl -n hw.memsize 2>/dev/null || echo 0) / 1024 / 1024 / 1024 )) GB"
-    echo "  macOS   $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
-    echo "  Uptime  $(get_uptime)"
+    echo "Model     $MODEL"
+    echo "CPU       $CPU"
+    echo "Host      $HOST | $USER"
+    echo "RAM       $MEM"
+    echo "Storage   $DISK_SIZE"
+    echo "OS        $(get_macos_name) | $OS_VERSION"
+    echo "Uptime    $UP_TIME"
     echo -e "${RESET}\n${BCYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
     check_internet
     # Status checks
@@ -1026,14 +1059,17 @@ print_system_details(){
   echo "${GREY}"
   echo "Model     $MODEL"
   echo "Host      $HOST"
+  echo "User      $USER"
+  echo "UUID      $MAC_UUID"
   echo "CPU       $CPU"
+  echo "Arch      $ARCH"
   echo "RAM       $MEM"
   echo "Storage   $DISK_SIZE"
   echo "Serial    $SERIAL"
   echo "OS        $(get_macos_name)"
   echo "Version   $OS_VERSION"
   echo "Build     $OS_BUILD"
-  echo "Uptime    $UPTIME"
+  echo "Uptime    $UP_TIME"
   if [[ "$ACTIVE_IF" == "No active interface" ]]; then
     echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
@@ -1099,6 +1135,28 @@ prompt_sudo(){
     # Keep sudo alive in the background to avoid password prompts
     while true; do sudo -n true; sleep 120; kill -0 "$$" || exit; done 2>/dev/null &
   fi
+}
+
+# This functions details to user about what the script does
+provide_what_script-does(){
+  echo ""
+  echo "${BMAGENTA}$TASK_HEADER${RESET}"
+  echo "${BGREY}$TASK_PREREQUISITE_CHECK"
+  echo "$TASK_INSTALL_DEPENDENCIES"
+  echo "$TASK_LOGGING_SETUP"
+  echo "$TASK_PRINT_SYS_INFO"
+  echo "$TASK_CLEAR_USER_CACHE"
+  echo "$TASK_CLEAN_IOS_BACKUPS"
+  echo "$TASK_CLEAN_XCODE_DATA"
+  echo "$TASK_CLEAN_DOCKER"
+  echo "$TASK_DELETE_OLD_LOGS"
+  echo "$TASK_EMPTY_TRASH"
+  echo "$TASK_REMOVE_TEMP_FILES"
+  echo "$TASK_CLEAN_DOWNLOADS"
+  echo "$TASK_HOMEBREW_CLEANUP"
+  echo "$TASK_PURGE_INACTIVE_MEMORY"
+  echo "$TASK_SHOW_SUMMARY"
+  echo "$TASK_CLEAN_EXIT${RESET}\n"
 }
 
 # This functions ensures all background jobs are killed on exit
