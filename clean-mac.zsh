@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.4.6-20250713-J55RT
+# Version  : 2.5.2-20250714-TV1AK
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -22,25 +22,13 @@ setopt nullglob extended_glob localoptions no_nomatch
 # Reset
 RESET=$'\e[0m'
 # REGULAR Colors
-BLACK=$'\e[30m'
-RED=$'\e[31m'
+RED=$'\e[38;5;9m'
 GREEN=$'\e[32m'
-GREY=$'\e[90m'
+GREY=$'\e[38;5;238m'
 YELLOW=$'\e[33m'
-BLUE=$'\e[38;5;33m'
+BLUE=$'\e[38;5;32m'
 MAGENTA=$'\e[35m'
 CYAN=$'\e[36m'
-WHITE=$'\e[37m'
-# BOLD Colors
-BBLACK=$'\e[1;30m'
-BRED=$'\e[1;31m'
-BGREEN=$'\e[1;32m'
-BGREY=$'\e[1;90m'
-BYELLOW=$'\e[1;33m'
-BBLUE=$'\e[1;34m'
-BMAGENTA=$'\e[1;35m'
-BCYAN=$'\e[1;36m'
-BWHITE=$'\e[1;37m'
 
 # ───── Global Variables ─────
 
@@ -48,7 +36,7 @@ ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
 : ${ACTIVE_IF:="No active interface"}
 AUTHOR="Prasit B Chanda"
 CPU="$(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.physicalcpu) CPU Core"
-DNS_SERVER="1.1.1.1"
+DNS_SERVER=("1.1.1.1" "8.8.8.8" "208.67.222.222" "9.9.9.9" "45.90.28.0")
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs)
@@ -94,7 +82,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.4.6-20250713-J55RT"
+VERSION="2.5.2-20250714-TV1AK"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -171,9 +159,8 @@ HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be offline"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils not installed. Please check your Homebrew setup"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew is not installed"
 HOMEBREW_OK="  ✓ Homebrew cleanup completed successfully"
-HOMEBREW_INTERNET_CHECK="Checking internet connectivity. DNS: $DNS_SERVER"
+HOMEBREW_INTERNET_CHECK="Checking internet connectivity"
 HOMEBREW_INTERNET_DOWN="Internet not available. Please check your connection"
-HOMEBREW_INTERNET_UP="Internet connection is active"
 HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
 HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
 HOMEBREW_CLEAN_CACHE=" ➜ Clearing contents of the Homebrew cache directory"
@@ -236,7 +223,7 @@ SCRIPT_INFO_MSG_3=" ➜ User consent secured, as confirmed by $USER"
 SCRIPT_INFO_MSG_4=" ➜ $USER has been successfully authenticated and authorized"
 SCRIPT_INTERNET_MSG="  ➜ Internet connection needed for cleanup and checks"
 SCRIPT_START_MSG="Starting clean-mac: optimizing your system now"
-SCRIPT_SUDO_FAIL_MSG="✖ Sudo access not granted. Exiting script for safety"
+SCRIPT_SUDO_FAIL_MSG=" ● $USER access not granted. Exiting script for safety"
 SCRIPT_SUDO_MSG="  ➜ This script may request your administrator password"
 SCRIPT_TERMINAL_MSG="  ➜ Please run this in the macOS Terminal"
 STATUS_ABORT="Abort"
@@ -290,10 +277,10 @@ XCODE_DERIVED_NONE_MSG="Xcode DerivedData folder already clean"
 
 # This function asks the user for consent to continue
 ask_user_consent() {
-  echo -e "${RESET}${BCYAN}$ASK_USER_MSG${RESET}"
+  echo -e "${RESET}${CYAN}$ASK_USER_MSG${RESET}"
   provide_what_script-does
   while true; do
-    print -nP "${BYELLOW}$PROMPT_USER_CONSENT_MSG${RESET}"
+    print -nP "${YELLOW}$PROMPT_USER_CONSENT_MSG${RESET}"
     read answer
     case "$answer" in
       [yY][eE][sS]|[yY])
@@ -317,7 +304,7 @@ ask_user_consent() {
 # This function checks execution dependencies (Homebrew, coreutils, osascript)
 check_dependencies() {
   local dependencies_status=0
-  echo -e "${RESET}${BCYAN}$DEPENDENCIES_HEADER${RESET}\n"
+  echo -e "${RESET}${CYAN}$DEPENDENCIES_HEADER${RESET}\n"
   sleep 0.2
   # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
@@ -402,19 +389,21 @@ check_dependencies() {
 # This function checks if the user has an internet connection
 # This uses ping to a reliable DNS server
 check_internet() {
-  local timeout=2
-  if ping -c 1 -W $timeout "$DNS_SERVER" >/dev/null 2>&1; then
-    echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
+  local timeout=5
+  local random_index=$(( RANDOM % ${#DNS_SERVER[@]} ))
+  local selected_dns="${DNS_SERVER[$random_index]}"
+  if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG (Pinged: $selected_dns)${RESET}"
     return 0
   else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG (Pinged: $selected_dns)${RESET}"
     return 1
   fi
 }
 
 # This functions checks Runtime Environment
 check_runtime_environment(){
-  echo -e "${RESET}${BCYAN}$CHK_ENV_MSG_1${RESET}\n"
+  echo -e "${RESET}${CYAN}$CHK_ENV_MSG_1${RESET}\n"
   sleep 0.2
   # Check if running in macOS
   if [[ "$(uname)" != "Darwin" ]]; then
@@ -465,11 +454,11 @@ clean_docker() {
   if command -v docker >/dev/null 2>&1; then
     echo "${GREY}$DOCKER_CLEANING${RESET}"
     docker system prune -af --volumes >/dev/null 2>&1
-    echo "${BGREEN}${DOCKER_PRUNED_MSG}${RESET}"
+    echo "${GREEN}${DOCKER_PRUNED_MSG}${RESET}"
     DOCKER_CLEANED=1
   else
     echo "${GREY}$NO_DOCKER_ON_SYS${RESET}"
-    echo "${BRED}${DOCKER_NOT_INSTALLED_MSG}${RESET}"
+    echo "${RED}${DOCKER_NOT_INSTALLED_MSG}${RESET}"
     DOCKER_CLEANED=0
   fi
   echo ""
@@ -486,16 +475,16 @@ clean_ios_backups() {
     if (( backup_count > 0 )); then
       echo "${GREY}${IOS_BACKUP_FOUND_MSG} $backup_count iOS device backup(s)${RESET}"
       sudo rm -rf "$IOS_BACKUP_DIR"/*
-      echo "${BGREEN}${IOS_BACKUP_REMOVED_MSG}${RESET}"
+      echo "${GREEN}${IOS_BACKUP_REMOVED_MSG}${RESET}"
       IOS_BCK_CLEANED=$backup_count
     else
       echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-      echo "${BYELLOW}${IOS_BACKUP_NONE_MSG}${RESET}"
+      echo "${YELLOW}${IOS_BACKUP_NONE_MSG}${RESET}"
       IOS_BCK_CLEANED=0
     fi
   else
     echo "${GREY}$IOS_BACKUP_NOT_DETECTED${RESET}"
-    echo "${BRED}${IOS_BACKUP_DIR_NONE_MSG}${RESET}"
+    echo "${RED}${IOS_BACKUP_DIR_NONE_MSG}${RESET}"
     IOS_BCK_CLEANED=0
   fi
   echo ""
@@ -508,27 +497,28 @@ clean_homebrew() {
   if command -v brew >/dev/null 2>&1; then
     print_brew_info
     # Check internet connectivity via DNS ping
-    echo "${MAGENTA}$HOMEBREW_INTERNET_CHECK${RESET}"
-    if ping -c1 -W2 "$DNS_SERVER" >/dev/null 2>&1; then 
-      echo "\n${BCYAN}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
+    echo "${MAGENTA}$HOMEBREW_INTERNET_CHECK${RESET}\n"
+    check_internet
+    local internet_stat=$?
+    if [ $status -eq 0 ]; then
+      echo "\n${CYAN}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
       echo "" 
-      echo "${GREEN}$HOMEBREW_INTERNET_UP${RESET}"     
       brew autoremove
       echo "${GREY}$HOMEBREW_CLEAN_AR${RESET}"
       brew cleanup -s
       echo "${GREY}$HOMEBREW_CLEAN_OV${RESET}"
       rm -rf "$(brew --cache)"/*
       echo "${GREY}$HOMEBREW_CLEAN_CACHE${RESET}"
-      echo "${BGREEN}${HOMEBREW_CLEANED_MSG}${RESET}"
+      echo "${GREEN}${HOMEBREW_CLEANED_MSG}${RESET}"
       BREW_CLEANED=1       
     else
       echo "${RED}$HOMEBREW_INTERNET_DOWN${RESET}"   
-      echo "${BRED}${HOMEBREW_CLEANUP_SKIPPED_MSG}${RESET}"
+      echo "${RED}${HOMEBREW_CLEANUP_SKIPPED_MSG}${RESET}"
       BREW_CLEANED=0
     fi
   else
     echo "${GREY}$NO_HOMEBREW${RESET}" 
-    echo "${BRED}${HOMEBREW_NOT_INSTALLED_MSG}${RESET}"
+    echo "${RED}${HOMEBREW_NOT_INSTALLED_MSG}${RESET}"
     BREW_CLEANED=0
   fi  
   echo ""
@@ -540,16 +530,16 @@ clean_memory_ram() {
   if command -v purge >/dev/null 2>&1; then
     if sudo purge >/dev/null 2>&1 && sleep 0.5; then
       echo "${GREY}$RAM_CLEAN${RESET}"
-      echo "${BGREEN}${PURGE_CLEANED_MSG}${RESET}"
+      echo "${GREEN}${PURGE_CLEANED_MSG}${RESET}"
       RAM_PURGED=1
     else
       echo "${GREY}$RAM_PURGE_MISS${RESET}"
-      echo "${BRED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
+      echo "${RED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
       RAM_PURGED=0
     fi
   else
     echo "${GREY}$RAM_PURGE_MISS${RESET}"
-    echo "${BRED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
+    echo "${RED}${PURGE_NOT_AVAILABLE_MSG}${RESET}"
     RAM_PURGED=0
   fi
 }
@@ -566,7 +556,7 @@ clean_old_downloads() {
   old_files=(${old_files:#""})
   if (( ${#old_files[@]} == 0 )); then
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-    echo "${BYELLOW}${DOWNLOADS_CLEAN_MSG}${RESET}"
+    echo "${YELLOW}${DOWNLOADS_CLEAN_MSG}${RESET}"
     DOWNLOADS_CLEANED=0
   else
     for file in "${old_files[@]}"; do
@@ -574,7 +564,7 @@ clean_old_downloads() {
       command rm -f -- "$file"
     done
     DOWNLOADS_CLEANED=${#old_files[@]}
-    echo "${BGREEN}${DOWNLOADS_CLEANED} ${DOWNLOADS_FILE_CLEANED_MSG}${RESET}"
+    echo "${GREEN}${DOWNLOADS_CLEANED} ${DOWNLOADS_FILE_CLEANED_MSG}${RESET}"
   fi
   echo ""
 }
@@ -590,14 +580,14 @@ clean_old_logs() {
   old_logs=(${old_logs:#""})
   if (( ${#old_logs[@]} == 0 )); then
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-    echo "${BYELLOW}$NO_LOG_CLEAN${RESET}"
+    echo "${YELLOW}$NO_LOG_CLEAN${RESET}"
     LOG_CLEANED=0
   else
     for file in "${old_logs[@]}"; do
       echo "${GREY} ➜ Cleaning LOG File: $file${RESET}"
       sudo rm -f -- "$file"
     done
-    echo "${BGREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
+    echo "${GREEN}${#old_logs[@]} $LOG_FILE_CLEANED_MSG${RESET}"
     LOG_CLEANED=${#old_logs[@]}
   fi
   echo ""
@@ -614,10 +604,10 @@ clean_temp_files() {
     # Use -delete for efficiency
     echo "${GREY} ➜ Cleaning: 3 days old files from $description${RESET}"
     sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
-    echo "${BGREEN}Cleaned $files_count old files from $description${RESET}"
+    echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
   else
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-    echo "${BYELLOW}No old files in $description${RESET}"
+    echo "${YELLOW}No old files in $description${RESET}"
   fi
 }
 
@@ -633,14 +623,14 @@ clean_trash() {
   trash_files=(${trash_files:#""})
   if (( ${#trash_files[@]} == 0 )); then
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-    echo "${BYELLOW}$TRASH_CLEAN_MSG${RESET}"
+    echo "${YELLOW}$TRASH_CLEAN_MSG${RESET}"
   else
     for file in "${trash_files[@]}"; do
       echo "${GREY} ➜ Cleaning File: $file${RESET}"
     done
     osascript -e 'tell application "Finder" to empty trash' &>/dev/null
-    echo "${BGREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
-    echo "${BGREEN}$TRASH_USER_CLEANED_MSG${RESET}"
+    echo "${GREEN}${#trash_files[@]} $TRASH_FILE_CLEANED_MSG${RESET}"
+    echo "${GREEN}$TRASH_USER_CLEANED_MSG${RESET}"
     TRASH_CLEANED=${#trash_files[@]}
   fi
   # Clean System Trash (Root)
@@ -648,15 +638,15 @@ clean_trash() {
   if [[ -d "$system_trash" ]]; then
     if [[ -z "$(sudo ls -A "$system_trash" 2>/dev/null)" ]]; then
       echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-      echo "${BYELLOW}$SYSTEM_TRASH_CLEAN_MSG${RESET}"
+      echo "${YELLOW}$SYSTEM_TRASH_CLEAN_MSG${RESET}"
     else
       sudo rm -rf "$system_trash"/* &>/dev/null
-      echo "${BGREEN}$SYSTEM_TRASH_CLEANED_MSG${RESET}"
+      echo "${GREEN}$SYSTEM_TRASH_CLEANED_MSG${RESET}"
       TRASH_CLEANED=1
     fi
   else
     echo "${GREY} ➜ Nice try, but the system says no${RESET}"
-    echo "${BYELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
+    echo "${YELLOW}$SYSTEM_TRASH_NOT_ACCESSIBLE_MSG${RESET}"
   fi
   # Clean Volume Trashes
   echo "${MAGENTA}Scanning: Volume Trashes${RESET}"
@@ -666,10 +656,10 @@ clean_trash() {
       found_volume=1
       if [[ -z "$(sudo ls -A "$trashes_dir" 2>/dev/null)" ]]; then
         echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-        echo "${BYELLOW}$TRASH_VOLUME_CLEAN_MSG $volume${RESET}"
+        echo "${YELLOW}$TRASH_VOLUME_CLEAN_MSG $volume${RESET}"
       else
         sudo rm -rf "$trashes_dir"/* &>/dev/null
-        echo "${BGREEN}$TRASH_VOLUME_CLEANED_MSG $volume${RESET}"
+        echo "${GREEN}$TRASH_VOLUME_CLEANED_MSG $volume${RESET}"
         TRASH_CLEANED=1
       fi
     fi
@@ -677,7 +667,7 @@ clean_trash() {
   # No Mounted Volume Found
   if (( found_volume == 0 )); then
     echo "${GREY}$NO_MOUNTED_VOLUME_MSG${RESET}"
-    echo "${BRED}$NO_MOUNTED_VOLUME_MSG_2${RESET}"
+    echo "${RED}$NO_MOUNTED_VOLUME_MSG_2${RESET}"
   fi
   echo ""
 }
@@ -731,10 +721,10 @@ clean_user_caches() {
   done
   # Print summary of cleaned user caches
   if (( UC_FILE_COUNT > 0 )); then
-    echo "${BGREEN}$USER_CACHE_CLEANED_MSG ($UC_FILE_COUNT folders cleaned)${RESET}"
+    echo "${GREEN}$USER_CACHE_CLEANED_MSG ($UC_FILE_COUNT folders cleaned)${RESET}"
     CACHES_CLEANED=$UC_FILE_COUNT
   else
-    echo "${BYELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
+    echo "${YELLOW}$USER_CACHE_CLEAN_MSG${RESET}"
   fi
   echo ""
 }
@@ -749,16 +739,16 @@ clean_xcode_cruft() {
     DERIVED_COUNT=$(find "$XCODE_DERIVED_DATA" -mindepth 1 -maxdepth 1 | wc -l | xargs)
     if [[ $DERIVED_COUNT -gt 0 ]]; then
       sudo rm -rf "$XCODE_DERIVED_DATA"/*
-      echo "${BGREEN}${XCODE_DERIVED_CLEANED_MSG} ($DERIVED_COUNT items).${RESET}"
+      echo "${GREEN}${XCODE_DERIVED_CLEANED_MSG} ($DERIVED_COUNT items).${RESET}"
     else
       DERIVED_COUNT=0
       echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-      echo "${BYELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
+      echo "${YELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
     fi
   else
     DERIVED_COUNT=0
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-    echo "${BYELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
+    echo "${YELLOW}${XCODE_DERIVED_NONE_MSG}${RESET}"
   fi
   # Clean Xcode DeviceSupport
   echo "${MAGENTA}Scanning: $XCODE_DEVICE_SUPPORT${RESET}"
@@ -766,16 +756,16 @@ clean_xcode_cruft() {
     DEVICE_SUPPORT_COUNT=$(find "$XCODE_DEVICE_SUPPORT" -mindepth 1 -maxdepth 1 | wc -l | xargs)
     if [[ $DEVICE_SUPPORT_COUNT -gt 0 ]]; then
       sudo rm -rf "$XCODE_DEVICE_SUPPORT"/*
-      echo "${BGREEN}${XCODE_DEVICE_CLEANED_MSG} ($DEVICE_SUPPORT_COUNT items).${RESET}"
+      echo "${GREEN}${XCODE_DEVICE_CLEANED_MSG} ($DEVICE_SUPPORT_COUNT items).${RESET}"
     else
       DEVICE_SUPPORT_COUNT=0
       echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
-      echo "${BYELLOW}${XCODE_DEVICE_NONE_MSG}${RESET}"
+      echo "${YELLOW}${XCODE_DEVICE_NONE_MSG}${RESET}"
     fi
   else
     DEVICE_SUPPORT_COUNT=0
     echo "${GREY}$NO_IOS_DEVICE${RESET}"
-    echo "${BRED}${XCODE_DEVICE_NONE_MSG}${RESET}"
+    echo "${RED}${XCODE_DEVICE_NONE_MSG}${RESET}"
   fi
   echo ""
 }
@@ -797,6 +787,7 @@ fancy_line_divider() {
 # This function creates a fancy text box with centered content
 fancy_title_box() {
   local content="$1"
+  local color="${2:-$GREY}"  # Default color if not provided
   local padding=1
   local IFS=$'\n'
   local lines=($content)
@@ -805,17 +796,18 @@ fancy_title_box() {
   for line in "${lines[@]}"; do
     (( ${#line} > max_length )) && max_length=${#line}
   done
-  printf "${BGREY}"
+  # Set box dimensions
   local box_width=$((max_length + padding * 2))
   local border_top="╔$(printf '═%.0s' $(seq 1 $box_width))╗"
   local border_bottom="╚$(printf '═%.0s' $(seq 1 $box_width))╝"
+  # Apply dynamic color using eval
+  eval "printf \"$color\""
   echo "$border_top"
   for line in "${lines[@]}"; do
     local total_space=$((box_width - ${#line}))
-    local left_space=$((total_space / 1))
+    local left_space=$((total_space / 2))
     local right_space=$((total_space - left_space))
-    # Print each line centered in the box
-    printf "%*s%s%*s\n" "$left_space" "" "$line" "$right_space" ""
+    printf "║%*s%s%*s║\n" "$left_space" "" "$line" "$right_space" ""
   done
   echo "$border_bottom"
   printf "${RESET}"
@@ -826,7 +818,7 @@ fancy_text_header() {
   local label="$1"
   local total_width=25
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
-  printf "${BGREY}"
+  printf "${GREY}"
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
@@ -896,13 +888,13 @@ human_readable_space() {
 # This function validates environment and dependencies before script execution
 pre_execution_check(){
   clear
-  echo ""
+  echo "\n"
   fancy_title_box "$SCRIPT_BOX_TITLE"
   echo ""
   fancy_text_header "$PRE_EXE_MSG_1"
   print_hints "$PRE_EXE_MSG_2"
   # Instructions
-  echo -e "${RESET}${BCYAN}$PRE_EXE_MSG_3${RESET}\n"
+  echo -e "${RESET}${CYAN}$PRE_EXE_MSG_3${RESET}\n"
   sleep 0.2
   echo "${GREY}$SCRIPT_SUDO_MSG${RESET}"
   sleep 0.2
@@ -921,24 +913,27 @@ pre_execution_check(){
   if [[ "$DEPENDENCIES_CHECK" -eq 1 ]]; then
     ask_user_consent
   fi
+  # Ask user for consent to continue (can exit here)
+  if [[ "$DEPENDENCIES_CHECK" -eq 1 ]]; then
+    # Prompt for sudo and handle interruption
+    echo -e "${RESET}\n${CYAN}$PRE_EXE_MSG_4${RESET}\n"
+    prompt_sudo
+  fi
+  # Finally 
   if [[ "$DEPENDENCIES_CHECK" -eq 0 ]]; then
-    fancy_title_box "$STATUS_ABORT"
+    fancy_title_box "$STATUS_ABORT" "$RED"
     echo ""
-    echo "${BRED}$PRE_EXE_FAIL_MSG_1${RESET}"
-    echo "${BGREY}$PRE_EXE_FAIL_MSG_2${RESET}\n"
+    echo "${RED}$PRE_EXE_FAIL_MSG_1${RESET}"
+    echo "${GREY}$PRE_EXE_FAIL_MSG_2${RESET}\n"
     USER_EXITED=1
     print_summary
     exit 1
-  else
-    # Prompt for sudo and handle interruption
-    echo -e "${RESET}\n${BCYAN}$PRE_EXE_MSG_4${RESET}\n"
-    prompt_sudo
   fi
 }
 
 # This function prints Homebrew information
 print_brew_info() {
-  echo "${BCYAN}$HOMEBREW_INFO_HEADER_MSG${RESET}"
+  echo "${CYAN}$HOMEBREW_INFO_HEADER_MSG${RESET}"
   local b=$(brew --version | head -n1)
   local p=${commands[brew]}
   local r=$(brew --repository)
@@ -978,14 +973,15 @@ print_hints() {
 
 # This function prints script info as header
 print_script_info(){
+  echo ""
   LOG_ID=$(generate_random_string)
   fancy_title_box "$SCRIPT_BOX_TITLE"
   echo "\n${CYAN}$SCRIPT_DESCRIPTION${RESET}\n"
   echo "${GREY}$DATE${RESET}"
-  echo "${GREY}LOG ID  $LOG_ID${RESET}"
+  echo "${GREY}TX ID   $LOG_ID${RESET}"
   echo "${GREY}Version $VERSION${RESET}"
   echo "${GREY}Author  $AUTHOR${RESET}"
-  echo "\n${BCYAN}$SCRIPT_START_MSG${RESET}\n"
+  echo "\n${CYAN}$SCRIPT_START_MSG${RESET}\n"
   echo "${GREEN}$SCRIPT_INFO_MSG_1${RESET}"
   echo "${GREEN}$SCRIPT_INFO_MSG_2${RESET}"
   echo "${GREEN}$SCRIPT_INFO_MSG_3${RESET}"
@@ -997,16 +993,16 @@ print_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
     echo ""
-    fancy_title_box "$CLEANUP_MSG"
-    echo -e "\n${BCYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
+    fancy_title_box "$CLEANUP_MSG" "$BLUE"
+    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
     echo "Model     $MODEL"
     echo "CPU       $CPU"
-    echo "Host      $HOST | $USER"
+    echo "Host      $HOST"
     echo "RAM       $MEM"
     echo "Storage   $DISK_SIZE"
-    echo "OS        $(get_macos_name) | $OS_VERSION"
-    echo "Uptime    $UP_TIME"
-    echo -e "${RESET}\n${BCYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
+    echo "OS        $(get_macos_name) $OS_VERSION"
+    echo "Uptime    $(get_uptime)"
+    echo -e "${RESET}\n${CYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
     check_internet
     # Status checks
     [[ $CACHES_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_CACHE($CACHES_CLEANED folders)${RESET}" || echo "${GREY}$USER_CACHE_NONE${RESET}"
@@ -1025,7 +1021,7 @@ print_summary() {
     MEM_AFTER_MB=$(( $(vm_stat | awk '/Pages free/ {print $3}' | sed 's/\\.//') * 4096 / 1024 / 1024 ))
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
-    echo -e "\n${BCYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
+    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
     if [[ "$RAM_PURGED" -eq 1 ]]; then
       (( MEM_FREED_MB > 0 )) && echo "${GREEN}  ● RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
     else
@@ -1069,7 +1065,7 @@ print_system_details(){
   echo "OS        $(get_macos_name)"
   echo "Version   $OS_VERSION"
   echo "Build     $OS_BUILD"
-  echo "Uptime    $UP_TIME"
+  echo "Uptime    $(get_uptime)"
   if [[ "$ACTIVE_IF" == "No active interface" ]]; then
     echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
@@ -1108,7 +1104,7 @@ print_ram_info() {
   # Memory Pressure
   local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
   # Print the summary
-  echo "${BCYAN}$RAM_INFO${RESET}"
+  echo "${CYAN}$RAM_INFO${RESET}"
   echo "${GREY}"
   echo "Total RAM  : ${total_gb} GB"
   echo "Free RAM   : ${free_mb} MB"
@@ -1126,11 +1122,9 @@ prompt_sudo(){
   sudo -v
   if ! sudo -v; then
     echo ""
-    echo "${BRED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
+    echo "${RED}$SCRIPT_SUDO_FAIL_MSG${RESET}"
     echo ""
-    USER_EXITED=1
-    print_summary
-    exit 1
+    DEPENDENCIES_CHECK=0
   else
     # Keep sudo alive in the background to avoid password prompts
     while true; do sudo -n true; sleep 120; kill -0 "$$" || exit; done 2>/dev/null &
@@ -1140,8 +1134,8 @@ prompt_sudo(){
 # This functions details to user about what the script does
 provide_what_script-does(){
   echo ""
-  echo "${BMAGENTA}$TASK_HEADER${RESET}"
-  echo "${BGREY}$TASK_PREREQUISITE_CHECK"
+  echo "${MAGENTA}$TASK_HEADER${RESET}"
+  echo "${GREY}$TASK_PREREQUISITE_CHECK"
   echo "$TASK_INSTALL_DEPENDENCIES"
   echo "$TASK_LOGGING_SETUP"
   echo "$TASK_PRINT_SYS_INFO"
