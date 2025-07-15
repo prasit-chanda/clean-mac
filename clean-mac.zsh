@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.5.5-20250715-UGOOR
+# Version  : 2.6.0-20250715-AZN4G
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -73,6 +73,7 @@ IOS_BCK_CLEANED=0
 DERIVED_COUNT=0
 DEVICE_SUPPORT_COUNT=0
 DOCKER_CLEANED=0
+TEMP_FILE_CLEANED=0
 TRASH_CLEANED=0
 UC_FILE_COUNT=0
 USER_EXITED=0
@@ -83,7 +84,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.5.5-20250715-UGOOR"
+VERSION="2.6.0-20250715-AZN4G"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -130,6 +131,7 @@ DEPENDENCIES_NOT_MSG="  ✖ Some required tools are missing. Please check your s
 DEPENDENCIES_OK_MSG="  ● All required dependencies are installed and operational"
 DISK_SPACE_UNCHANGED_MSG="  ● No change in disk usage detected"
 DL_NONE="  ● Downloads folder is already clean"
+TEMP_FILE_NONE="  ● No temporary files to clean"
 DOCKER_CLEANING="Cleaning Docker containers, images, and volumes"
 DOCKER_NONE="  ✖ Docker not detected. Skipped cleanup"
 DOCKER_NOT_INSTALLED_MSG="Docker is not configured or installed on this host"
@@ -217,14 +219,16 @@ OLD_LOG_CLEAN="Scanning system logs older than 7 days"
 ROOT_WARNING_MSG="  ➜ Running as root is not recommended. Exiting for safety"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
 SCRIPT_BOX_BOOT="Bootstrap"
-SCRIPT_DESCRIPTION="Cleans caches, logs, downloads, Trash, and Homebrew clutter—efficiently, transparently"
+SCRIPT_DESCRIPTION_A="Clean caches, logs, downloads, Trash, and even Homebrew clutter"
+SCRIPT_DESCRIPTION_B="ϟ Fast ${YELLOW}ꨄ Transparent ${MAGENTA}𐙚 Effortless"
 SCRIPT_EXIT_MSG="  ➜ Press ⌃ + Z anytime to pause or exit"
 SCRIPT_INFO_MSG_1=" ➜ Runtime environments meet compatibility requirements"
 SCRIPT_INFO_MSG_2=" ➜ Required libraries and services are properly configured"
 SCRIPT_INFO_MSG_3=" ➜ User consent secured, as confirmed by $USER"
 SCRIPT_INFO_MSG_4=" ➜ $USER has been successfully authenticated and authorized"
+SCRIPT_INFO_MSG_5="All prerequisites checked and validated — you're good to go!"
 SCRIPT_INTERNET_MSG="  ➜ Internet connection needed for cleanup and checks"
-SCRIPT_START_MSG="Starting clean-mac: optimizing your system now"
+SCRIPT_START_MSG=" ● Mac is about to run smoother, faster, and cleaner than ever"
 SCRIPT_SUDO_FAIL_MSG=" ● $USER access not granted. Exiting script for safety"
 SCRIPT_SUDO_MSG="  ➜ This script may request your administrator password"
 SCRIPT_TERMINAL_MSG="  ➜ Please run this in the macOS Terminal"
@@ -260,6 +264,7 @@ TASK_HOMEBREW_CLEANUP="  ➜ Perform Homebrew cache and outdated package cleanup
 TASK_PURGE_INACTIVE_MEMORY="  ➜ Free up unused memory to improve system responsiveness"
 TASK_SHOW_SUMMARY="  ➜ Present a summary of reclaimed space and completed tasks"
 TASK_CLEAN_EXIT="  ➜ Ensure all background jobs are terminated safely on script exit"
+TEMP_FILE_SUM_TEXT="  ✓ Temporary Files cleaned "
 TRASH_CLEAN_MSG="User Trash has been emptied"
 TRASH_FILE_CLEANED_MSG="file(s) deleted from Trash"
 TRASH_NONE="  ● Trash is already empty"
@@ -309,7 +314,6 @@ ask_user_consent() {
 check_dependencies() {
   local dependencies_status=0
   echo -e "${RESET}${CYAN}$DEPENDENCIES_HEADER${RESET}\n"
-  sleep 0.1
   # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
@@ -394,7 +398,7 @@ check_dependencies() {
 # This uses ping to a reliable DNS server
 check_internet() {
   local timeout=5
-  local random_index=$(( RANDOM % ${#DNS_SERVER[@]} ))
+  local random_index=$(( RANDOM % ${#DNS_SERVER[@]} + 1 ))
   local selected_dns="${DNS_SERVER[$random_index]}"
   if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
     echo "${GREEN}$INTERNET_AVAILABLE_MSG (Pinged ➜ $selected_dns)${RESET}"
@@ -609,6 +613,7 @@ clean_temp_files() {
     echo "${GREY} ➜ Cleaning: 3 days old files from $description${RESET}"
     sudo find "$dir" -type f -mtime +3 -delete 2>/dev/null
     echo "${GREEN}Cleaned $files_count old files from $description${RESET}"
+    TEMP_FILE_CLEANED=$((TEMP_FILE_CLEANED + files_count))
   else
     echo "${GREY}$NO_FILES_TO_CLEAN_MSG${RESET}"
     echo "${YELLOW}No old files in $description${RESET}"
@@ -986,16 +991,18 @@ print_script_info(){
   echo ""
   LOG_ID=$(generate_random_string)
   fancy_title_box "$SCRIPT_BOX_TITLE" "$BLUE"
-  echo "\n${CYAN}$SCRIPT_DESCRIPTION${RESET}\n"
-  echo "${GREY}$DATE${RESET}"
-  echo "${GREY}TX ID   $LOG_ID${RESET}"
-  echo "${GREY}Version $VERSION${RESET}"
-  echo "${GREY}Author  $AUTHOR${RESET}"
-  echo "\n${CYAN}$SCRIPT_START_MSG${RESET}\n"
+  echo "\n${BLUE}$SCRIPT_DESCRIPTION_A${RESET}"
+  echo "${GREEN}$SCRIPT_DESCRIPTION_B${RESET}\n"
+  echo "${CYAN}$SCRIPT_INFO_MSG_5${RESET}\n"
   echo "${GREEN}$SCRIPT_INFO_MSG_1${RESET}"
   echo "${GREEN}$SCRIPT_INFO_MSG_2${RESET}"
   echo "${GREEN}$SCRIPT_INFO_MSG_3${RESET}"
-  echo "${GREEN}$SCRIPT_INFO_MSG_4${RESET}\n"
+  echo "${GREEN}$SCRIPT_INFO_MSG_4${RESET}"
+  echo "${GREEN}$SCRIPT_START_MSG${RESET}\n"
+  echo "${GREY}$DATE${RESET}"
+  echo "${BLUE}TX ID   $LOG_ID${RESET}"
+  echo "${BLUE}Version $VERSION${RESET}"
+  echo "${BLUE}Author  $AUTHOR${RESET}\n"
 }
 
 # This function prints clean-up summary at the end of the script
@@ -1017,15 +1024,16 @@ print_summary() {
     check_internet
     # Status checks
     [[ $CACHES_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_CACHE($CACHES_CLEANED folders)${RESET}" || echo "${GREY}$USER_CACHE_NONE${RESET}"
-    [[ $LOG_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_LOG($LOG_CLEANED files)${RESET}" || echo "${GREY}$LOG_NONE${RESET}"
-    [[ $TRASH_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_TRASH($TRASH_CLEANED files)${RESET}" || echo "${GREY}$TRASH_NONE${RESET}"
-    [[ $DOWNLOADS_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_DWL($DOWNLOADS_CLEANED files)${RESET}" || echo "${GREY}$DL_NONE${RESET}"
-    [[ $BREW_CLEANED -eq 1 ]] && echo "${GREEN}$HOMEBREW_OK${RESET}" || echo "${RED}$HOMEBREW_NONE${RESET}"
-    [[ $RAM_PURGED -eq 1 ]] && echo "${GREEN}$MEM_OK${RESET}" || echo "${GREY}$MEM_NONE${RESET}"
     [[ ${IOS_BCK_CLEANED:-0} -gt 0 ]] && echo "${GREEN}$SUM_TEXT_IOS_BCK($IOS_BCK_CLEANED)${RESET}" || echo "${GREY}$IOS_NONE${RESET}"
     [[ ${DERIVED_COUNT:-0} -gt 0 ]] && echo "${GREEN}$SUM_TEXT_ISO_DD($DERIVED_COUNT items)${RESET}" || echo "${GREY}$DD_NONE${RESET}"
     [[ ${DEVICE_SUPPORT_COUNT:-0} -gt 0 ]] && echo "${GREEN}$SUM_TEXT_ISO_DS($DEVICE_SUPPORT_COUNT items)${RESET}" || echo "${GREY}$DS_NONE${RESET}"
     [[ ${DOCKER_CLEANED:-0} -eq 1 ]] && echo "${GREEN}$DOCKER_OK${RESET}" || echo "${RED}$DOCKER_NONE${RESET}"
+    [[ $LOG_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_LOG($LOG_CLEANED files)${RESET}" || echo "${GREY}$LOG_NONE${RESET}"
+    [[ $TRASH_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_TRASH($TRASH_CLEANED files)${RESET}" || echo "${GREY}$TRASH_NONE${RESET}"
+    [[ $TEMP_FILE_CLEANED -gt 0 ]] && echo "${GREEN}$TEMP_FILE_SUM_TEXT($TEMP_FILE_CLEANED files)${RESET}" || echo "${GREY}$TEMP_FILE_NONE${RESET}"
+    [[ $DOWNLOADS_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_DWL($DOWNLOADS_CLEANED files)${RESET}" || echo "${GREY}$DL_NONE${RESET}"
+    [[ $BREW_CLEANED -eq 1 ]] && echo "${GREEN}$HOMEBREW_OK${RESET}" || echo "${RED}$HOMEBREW_NONE${RESET}"
+    [[ $RAM_PURGED -eq 1 ]] && echo "${GREEN}$MEM_OK${RESET}" || echo "${GREY}$MEM_NONE${RESET}"
     # Disk and Memory Calculations
     space_after=$(get_free_space)
     space_freed=$(( space_after - space_before ))
