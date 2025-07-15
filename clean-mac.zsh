@@ -309,7 +309,7 @@ ask_user_consent() {
 check_dependencies() {
   local dependencies_status=0
   echo -e "${RESET}${CYAN}$DEPENDENCIES_HEADER${RESET}\n"
-  sleep 0.2
+  sleep 0.1
   # --- Homebrew Check ---
   if ! command -v brew >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_MSG${RESET}"
@@ -324,7 +324,7 @@ check_dependencies() {
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_MSG${RESET}"
   fi
-  sleep 0.2
+  sleep 0.1
   # --- Coreutils Check ---
   if ! brew ls --versions coreutils >/dev/null 2>&1; then
     echo "${RED}$HOMEBREW_NOT_INSTALLED_COREUTIL_MSG${RESET}"
@@ -349,7 +349,7 @@ check_dependencies() {
   else
     echo "${GREEN}$HOMEBREW_INSTALLED_COREUTIL_MSG${RESET}"
   fi
-  sleep 0.2
+  sleep 0.1
   # --- osascript Check (macOS-only) ---
   if ! command -v osascript >/dev/null 2>&1; then
     echo "${RED}$OSASCRIPT_NOT_INSTALLED_MSG${RESET}"
@@ -379,7 +379,7 @@ check_dependencies() {
   else
     echo "${GREEN}$OSASCRIPT_AVAILABLE_MSG${RESET}"
   fi
-  sleep 0.2
+  sleep 0.1
   # --- Final Result ---
   if [[ $dependencies_status -eq 0 ]]; then
     echo "${GREEN}$DEPENDENCIES_OK_MSG${RESET}"
@@ -532,7 +532,7 @@ clean_homebrew() {
 clean_memory_ram() {
   echo "${MAGENTA}$RAM_SCAN${RESET}"
   if command -v purge >/dev/null 2>&1; then
-    if sudo purge >/dev/null 2>&1 && sleep 0.5; then
+    if sudo purge >/dev/null 2>&1 && sleep 1; then
       echo "${GREY}$RAM_CLEAN${RESET}"
       echo "${GREEN}${PURGE_CLEANED_MSG}${RESET}"
       RAM_PURGED=1
@@ -903,13 +903,13 @@ pre_execution_check(){
   print_hints "$PRE_EXE_MSG_2"
   # Instructions
   echo -e "${RESET}${CYAN}$PRE_EXE_MSG_3${RESET}\n"
-  sleep 0.2
+  sleep 0.1
   echo "${GREY}$SCRIPT_SUDO_MSG${RESET}"
-  sleep 0.2
+  sleep 0.1
   echo "${GREY}$SCRIPT_TERMINAL_MSG${RESET}"
-  sleep 0.2
+  sleep 0.1
   echo "${GREY}$SCRIPT_INTERNET_MSG${RESET}"
-  sleep 0.2
+  sleep 0.1
   echo "${GREY}$SCRIPT_EXIT_MSG${RESET}\n"
   # Check Runtime Environment
   check_runtime_environment 
@@ -937,7 +937,7 @@ pre_execution_check(){
     print_summary
     exit 1
   else
-    (sleep 5) & working_in_progress $! "$WRK_IN_PRG_PRE_CHECK"
+    (sleep 2.5) & working_in_progress $! "$WRK_IN_PRG_PRE_CHECK"
   fi
 }
 
@@ -1002,7 +1002,7 @@ print_script_info(){
 print_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
-    (sleep 5) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
+    (sleep 2.5) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
     echo ""
     fancy_title_box "$CLEANUP_MSG" "$BLUE"
     echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
@@ -1138,7 +1138,7 @@ prompt_sudo(){
     DEPENDENCIES_CHECK=0
   else
     # Keep sudo alive in the background to avoid password prompts
-    while true; do sudo -n true; sleep 120; kill -0 "$$" || exit; done 2>/dev/null &
+    while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
   fi
 }
 
@@ -1147,21 +1147,37 @@ provide_what_script-does(){
   echo ""
   echo "${MAGENTA}$TASK_HEADER${RESET}"
   echo "${BGREY}$TASK_PREREQUISITE_CHECK"
+  sleep 0.1
   echo "$TASK_INSTALL_DEPENDENCIES"
+  sleep 0.1
   echo "$TASK_LOGGING_SETUP"
+  sleep 0.1
   echo "$TASK_PRINT_SYS_INFO"
+  sleep 0.1
   echo "$TASK_CLEAR_USER_CACHE"
+  sleep 0.1
   echo "$TASK_CLEAN_IOS_BACKUPS"
+  sleep 0.1
   echo "$TASK_CLEAN_XCODE_DATA"
+  sleep 0.1
   echo "$TASK_CLEAN_DOCKER"
+  sleep 0.1
   echo "$TASK_DELETE_OLD_LOGS"
+  sleep 0.1
   echo "$TASK_EMPTY_TRASH"
+  sleep 0.1
   echo "$TASK_REMOVE_TEMP_FILES"
+  sleep 0.1
   echo "$TASK_CLEAN_DOWNLOADS"
+  sleep 0.1
   echo "$TASK_HOMEBREW_CLEANUP"
+  sleep 0.1
   echo "$TASK_PURGE_INACTIVE_MEMORY"
+  sleep 0.1
   echo "$TASK_SHOW_SUMMARY"
+  sleep 0.1
   echo "$TASK_CLEAN_EXIT${RESET}\n"
+  sleep 1
 }
 
 # This functions generate dynamic spinner
@@ -1210,33 +1226,42 @@ trap cleanup EXIT INT TERM
 
 # Print the script Title in a fancy box with Details
 print_script_info
+sleep 1
 
 # Print System Details
 print_system_details
+sleep 1
 
 # Step 1: Clear User Caches
 clean_user_caches
+sleep 1
 
 # Step 2: Clean iOS device Backups
 clean_ios_backups
+sleep 1
 
 # Step 3: Clean Xcode DerivedData and device support
 clean_xcode_cruft
+sleep 1
 
 # Step 4: Clean Docker system (if installed)
 clean_docker
+sleep 1
 
 # Step 5: Clean old System Logs older than 7 days
 clean_old_logs
+sleep 1
 
 # Step 6: Empty Trash/Bin for user, root, and all mounted volumes
 clean_trash
 
 # Step 7: Clean Temporary Files older than 3 days
 clean_all_temp_dirs
+sleep 1
 
 # Step 8: Clean old Downloads
 clean_old_downloads
+sleep 1
 
 # Step 9: Homebrew Cleanup
 clean_homebrew
