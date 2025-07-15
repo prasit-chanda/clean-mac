@@ -861,14 +861,18 @@ get_free_space() {
 
 # This function gets simple uptime (returns "X days", "Y hours", etc.)
 get_uptime() {
-  local uptime_part
-  uptime_part=$(uptime | awk -F'up ' '{split($2,a,","); print a[1]}' | sed -E '
-    s/^ *([0-9]+) days?.*/\1 day/;
-    s/^ *([0-9]+):[0-9]+.*/\1 hr/;
-    s/^ *([0-9]+) mins?.*/\1 min/;
-    s/^\s*$/Just booted/
-  ')
-  echo "$uptime_part"
+  local boot_epoch now uptime_sec hrs mins secs
+  # Get boot time in epoch seconds
+  boot_epoch=$(sysctl -n kern.boottime | awk -F'[ ,}]+' '{print $4}')
+    # Current time in epoch seconds
+  now=$(date +%s)
+  # Uptime in seconds
+  uptime_sec=$((now - boot_epoch))
+  # Convert to H:M:S
+  hrs=$((uptime_sec / 3600))
+  mins=$(((uptime_sec % 3600) / 60))
+  secs=$((uptime_sec % 60))
+  printf "%02d:%02d:%02d\n" "$hrs" "$mins" "$secs"
 }
 
 # This function converts bytes to human-readable format
@@ -1032,7 +1036,7 @@ print_summary() {
     SCRIPT_END_TIME=$(date +%s)
     if [[ -n "$SCRIPT_START_TIME" ]]; then
       local elapsed=$((SCRIPT_END_TIME - SCRIPT_START_TIME))
-      printf "${GREEN}  ● Execution Time %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
+      printf "${GREEN}  ● Runtime %02d:%02d:%02d${RESET}\n" $((elapsed/3600)) $(((elapsed%3600)/60)) $((elapsed%60))
     fi
     echo ""
     echo "${GREY}$FOOTER_LOG_DIR_MSG${RESET}"
