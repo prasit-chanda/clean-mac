@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.5.2-20250714-TV1AK
+# Version  : 2.5.4-20250715-O952C
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -29,6 +29,7 @@ YELLOW=$'\e[33m'
 BLUE=$'\e[38;5;32m'
 MAGENTA=$'\e[35m'
 CYAN=$'\e[36m'
+BGREY=$'\e[1;90m'
 
 # ───── Global Variables ─────
 
@@ -82,7 +83,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.5.2-20250714-TV1AK"
+VERSION="2.5.4-20250715-O952C"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -197,8 +198,8 @@ OSASCRIPT_INSTALL_SUCCESS_MSG="osascript installed successfully"
 OSASCRIPT_NOT_INSTALLED_MSG="osascript is not installed on this system"
 PRE_EXE_FAIL_MSG_1=" ♱ Script fail due to dependencies, consent, or authentication"
 PRE_EXE_FAIL_MSG_2=" ● Fix the detected issues before re-running the script"
-PRE_EXE_MSG_1="Pre-execution Check"
-PRE_EXE_MSG_2="Validate environment and dependencies before script execution"
+PRE_EXE_MSG_1="Pre-execution Validation"
+PRE_EXE_MSG_2="Validate environment and dependencies before executing clean-mac.zsh"
 PRE_EXE_MSG_3="Guidelines"
 PRE_EXE_MSG_4="Authenticate User: $USER"
 PROMPT_USER_CONSENT_APPROVAL="  ● $USER confirmed. Proceeding with script execution"
@@ -215,6 +216,7 @@ OLD_FILE_CLEAN="Scanning Downloads folder for files older than 7 days"
 OLD_LOG_CLEAN="Scanning system logs older than 7 days"
 ROOT_WARNING_MSG="  ➜ Running as root is not recommended. Exiting for safety"
 SCRIPT_BOX_TITLE="clean-mac.zsh"
+SCRIPT_BOX_BOOT="Bootstrap"
 SCRIPT_DESCRIPTION="Cleans caches, logs, downloads, Trash, and Homebrew clutter—efficiently, transparently"
 SCRIPT_EXIT_MSG="  ➜ Press ⌃ + Z anytime to pause or exit"
 SCRIPT_INFO_MSG_1=" ➜ Runtime environments meet compatibility requirements"
@@ -393,10 +395,10 @@ check_internet() {
   local random_index=$(( RANDOM % ${#DNS_SERVER[@]} ))
   local selected_dns="${DNS_SERVER[$random_index]}"
   if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
-    echo "${GREEN}$INTERNET_AVAILABLE_MSG (Pinged: $selected_dns)${RESET}"
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG (Pinged ➜ $selected_dns)${RESET}"
     return 0
   else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG (Pinged: $selected_dns)${RESET}"
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG (Pinged ➜ $selected_dns)${RESET}"
     return 1
   fi
 }
@@ -807,7 +809,7 @@ fancy_title_box() {
     local total_space=$((box_width - ${#line}))
     local left_space=$((total_space / 2))
     local right_space=$((total_space - left_space))
-    printf "║%*s%s%*s║\n" "$left_space" "" "$line" "$right_space" ""
+    printf " %*s%s%*s \n" "$left_space" "" "$line" "$right_space" ""
   done
   echo "$border_bottom"
   printf "${RESET}"
@@ -818,7 +820,7 @@ fancy_text_header() {
   local label="$1"
   local total_width=25
   local padding_width=$(( (total_width - ${#label} - 2) / 2 ))
-  printf "${GREY}"
+  printf "${BGREY}"
   printf '%*s' "$padding_width" '' | tr ' ' '='
   printf " %s " "$label"
   printf '%*s\n' "$padding_width" '' | tr ' ' '='
@@ -893,7 +895,7 @@ human_readable_space() {
 pre_execution_check(){
   clear
   echo "\n"
-  fancy_title_box "$SCRIPT_BOX_TITLE"
+  fancy_title_box "$SCRIPT_BOX_BOOT"
   echo ""
   fancy_text_header "$PRE_EXE_MSG_1"
   print_hints "$PRE_EXE_MSG_2"
@@ -979,7 +981,7 @@ print_hints() {
 print_script_info(){
   echo ""
   LOG_ID=$(generate_random_string)
-  fancy_title_box "$SCRIPT_BOX_TITLE"
+  fancy_title_box "$SCRIPT_BOX_TITLE" "$BLUE"
   echo "\n${CYAN}$SCRIPT_DESCRIPTION${RESET}\n"
   echo "${GREY}$DATE${RESET}"
   echo "${GREY}TX ID   $LOG_ID${RESET}"
@@ -1139,7 +1141,7 @@ prompt_sudo(){
 provide_what_script-does(){
   echo ""
   echo "${MAGENTA}$TASK_HEADER${RESET}"
-  echo "${GREY}$TASK_PREREQUISITE_CHECK"
+  echo "${BGREY}$TASK_PREREQUISITE_CHECK"
   echo "$TASK_INSTALL_DEPENDENCIES"
   echo "$TASK_LOGGING_SETUP"
   echo "$TASK_PRINT_SYS_INFO"
