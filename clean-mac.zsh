@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.5.4-20250715-O952C
+# Version  : 2.5.5-20250715-UGOOR
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -83,7 +83,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.5.4-20250715-O952C"
+VERSION="2.5.5-20250715-UGOOR"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -270,6 +270,8 @@ UNSUPPORTED_OS_MSG="✖ This script is only compatible with macOS"
 USER_CACHE_CLEAN_MSG="User Caches are already clean"
 USER_CACHE_CLEANED_MSG="User Caches cleared successfully"
 USER_CACHE_NONE="  ● No User Caches file(s) found"
+WRK_IN_PRG_SUMMARY="Generating a comprehensive report of all the cleanup actions performed..."
+WRK_IN_PRG_PRE_CHECK="Initializing clean-mac.zsh, getting everything ready for the cleanup..."
 XCODE_DEVICE_CLEANED_MSG="Xcode device data removed"
 XCODE_DEVICE_NONE_MSG="No Xcode device data found"
 XCODE_DERIVED_CLEANED_MSG="Xcode DerivedData folder cleaned"
@@ -934,6 +936,8 @@ pre_execution_check(){
     USER_EXITED=1
     print_summary
     exit 1
+  else
+    (sleep 5) & working_in_progress $! "$WRK_IN_PRG_PRE_CHECK"
   fi
 }
 
@@ -998,6 +1002,7 @@ print_script_info(){
 print_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
+    (sleep 5) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
     echo ""
     fancy_title_box "$CLEANUP_MSG" "$BLUE"
     echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
@@ -1157,6 +1162,21 @@ provide_what_script-does(){
   echo "$TASK_PURGE_INACTIVE_MEMORY"
   echo "$TASK_SHOW_SUMMARY"
   echo "$TASK_CLEAN_EXIT${RESET}\n"
+}
+
+# This functions generate dynamic spinner
+working_in_progress() {
+  local pid=$1
+  local message=$2
+  local spin='-\|/'
+  echo "" > /dev/tty
+  while kill -0 "$pid" 2>/dev/null; do
+    for i in {0..3}; do
+      printf "\r[%c] $message" "${spin:$i:1}" > /dev/tty
+      sleep 0.1
+    done
+  done
+  echo "" > /dev/tty
 }
 
 # This functions ensures all background jobs are killed on exit
