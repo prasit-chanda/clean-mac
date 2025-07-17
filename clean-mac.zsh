@@ -1239,14 +1239,13 @@ working_in_progress() {
   local pid=$1
   local message=$2
   local spin='-\|/'
-  echo "" > /dev/tty
   while kill -0 "$pid" 2>/dev/null; do
     for i in {0..3}; do
       printf "\r[%c] $message" "${spin:$i:1}" > /dev/tty
       sleep 0.1
     done
   done
-  # Clear the spinner line
+  # Clear spinner line
   printf "\r\033[K" > /dev/tty
 }
 
