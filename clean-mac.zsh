@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.6.0-20250715-AZN4G
+# Version  : 2.6.3-20250717-V484X
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -84,7 +84,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.6.0-20250715-AZN4G"
+VERSION="2.6.3-20250717-V484X"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -98,7 +98,7 @@ PROTECTED_CACHES=(
 
 # ───── Static Text Variables ─────
 
-ASK_USER_MSG="Requests User Consent"
+ASK_USER_MSG="Requesting User Consent"
 AUTHOR_COPYRIGHT=" ${AUTHOR} © $(date +%Y) "
 CHK_ENV_MSG_1="Evaluating Runtime Settings"
 CHK_ENV_MSG_2="  ➜ The script is designed for macOS—great to see you're using one"
@@ -126,7 +126,7 @@ CLEANING_XCODE_HEADER="Xcode"
 CLEANING_XCODE_HINT="Removing Xcode build artifacts and unnecessary data"
 CLEANUP_MSG="Cleanup Recap"
 DD_NONE="  ● No DerivedData folder found for Xcode"
-DEPENDENCIES_HEADER="Ensure Libraries and Services"
+DEPENDENCIES_HEADER="Ensuring Libraries and Services"
 DEPENDENCIES_NOT_MSG="  ✖ Some required tools are missing. Please check your setup"
 DEPENDENCIES_OK_MSG="  ● All required dependencies are installed and operational"
 DISK_SPACE_UNCHANGED_MSG="  ● No change in disk usage detected"
@@ -167,6 +167,7 @@ HOMEBREW_INTERNET_DOWN="Internet not available. Please check your connection"
 HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
 HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
 HOMEBREW_CLEAN_CACHE=" ➜ Clearing contents of the Homebrew cache directory"
+INT_SPEED_CHECK="Testing network bandwidth and latency"
 INTERNET_AVAILABLE="✓ Connected"
 INTERNET_AVAILABLE_MSG="  ✓ Active internet connection"
 INTERNET_UNAVAILABLE="✖ Disconnected"
@@ -240,9 +241,9 @@ SUM_TEXT_DWL="  ✓ Old Downloads cleaned "
 SUM_TEXT_IOS_BCK="  ✓ iOS device backups cleaned "
 SUM_TEXT_ISO_DD="  ✓ Xcode DerivedData cleaned "
 SUM_TEXT_ISO_DS="  ✓ Xcode DeviceSupport cleaned "
-SUMMARY_SUB_TITLE_1_MSG="System Overview"
-SUMMARY_SUB_TITLE_2_MSG="Cleanup Actions"
-SUMMARY_SUB_TITLE_3_MSG="Post-Cleanup Report"
+SUMMARY_SUB_TITLE_1_MSG="System Overview ${YELLOW} ⋆｡𖦹°⭒˚｡⋆"
+SUMMARY_SUB_TITLE_2_MSG="Cleanup Actions ${MAGENTA} ✎ᝰ.ᐟ⋆⑅˚₊"
+SUMMARY_SUB_TITLE_3_MSG="Post-Cleanup Report ${GREEN} ༘˚⋆𐙚｡⋆𖦹.✧˚"
 SYSTEM_DETAILS_HEADER="System"
 SYSTEM_TRASH_CLEAN_MSG="System Trash is already empty"
 SYSTEM_TRASH_CLEANED_MSG="System Trash emptied successfully"
@@ -878,7 +879,7 @@ get_macos_name() {
   echo "macOS $macos_name"
 }
 
-# Generates a random alphanumeric string like "A1B2C-3ED4E-F5G6-H7I8-J9K0"
+# Generates a random alphanumeric string like "RO5JH-V484X-ZIEZO-JD5C0-D38SK"
 generate_random_string() {
   local raw key
   raw=$(LC_ALL=C tr -dc 'A-Z0-9' < /dev/urandom | head -c 25)
@@ -955,7 +956,7 @@ pre_execution_check(){
     fancy_title_box "$STATUS_ABORT" "$RED"
     echo ""
     echo "${RED}$PRE_EXE_FAIL_MSG_1${RESET}"
-    echo "${GREY}$PRE_EXE_FAIL_MSG_2${RESET}\n"
+    echo "${YELLOW}$PRE_EXE_FAIL_MSG_2${RESET}\n"
     USER_EXITED=1
     print_summary
     exit 1
@@ -1107,6 +1108,7 @@ print_system_details(){
     echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
     echo "Internet  ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
+    show_netspeed
   fi
   echo "NetIface  $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
   echo "IP        $IP"
@@ -1204,6 +1206,32 @@ provide_what_script-does(){
   sleep 0.1
   echo "$TASK_CLEAN_EXIT${RESET}\n"
   sleep 1
+}
+
+# This function measures network bandwidth and latency
+show_netspeed() {
+  local tmpfile=$(mktemp)
+  if ! command -v networkquality &>/dev/null; then
+    echo "'networkquality' not found (macOS Monterey+ required)" >&2
+    return 1
+  fi
+  # Run networkquality in the background and redirect output to temp file
+  networkquality -s > "$tmpfile" 2>/dev/null &
+  local pid=$!
+  # Wait for process to finish
+  working_in_progress $pid "$INT_SPEED_CHECK"
+  wait "$pid"
+  # Parse output
+  local dl ul lat
+  dl=$(awk -F': ' '/Downlink capacity/ {print $2}' "$tmpfile")
+  ul=$(awk -F': ' '/Uplink capacity/ {print $2}' "$tmpfile")
+  lat=$(awk -F': ' '/Responsiveness/ {getline; print}' "$tmpfile" | sed 's/^[^:]*: //')
+  # Cleanup
+  rm -f "$tmpfile"
+  # Final output
+  echo "Download  $dl"
+  echo "Upload    $ul"
+  echo "Latency   $lat"
 }
 
 # This functions generate dynamic spinner
