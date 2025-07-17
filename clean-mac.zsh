@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.6.3-20250717-V484X
+# Version  : 2.6.8-20250717-ARL83
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -36,7 +36,7 @@ BGREY=$'\e[1;90m'
 ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
 : ${ACTIVE_IF:="No active interface"}
 AUTHOR="Prasit B Chanda"
-CPU="$(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.physicalcpu) CPU Core"
+CPU="$(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.physicalcpu) cores"
 DNS_SERVER=("1.1.1.1" "8.8.8.8" "208.67.222.222" "9.9.9.9" "45.90.28.0")
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
@@ -84,7 +84,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.6.3-20250717-V484X"
+VERSION="2.6.8-20250717-ARL83"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -149,7 +149,7 @@ FOOTER_SCRIPT_VERSION_MSG="Version  $VERSION"
 HOMEBREW_CLEANED_MSG="Homebrew cleanup completed"
 HOMEBREW_CLEAN_HEADER_MSG="Performing Homebrew cleanup"
 HOMEBREW_CLEANUP_SKIPPED_MSG="Skipped Homebrew cleanup (Homebrew not found or offline)"
-HOMEBREW_INFO_HEADER_MSG="Homebrew Status"
+HOMEBREW_INFO_HEADER_MSG="● Homebrew Status"
 HOMEBREW_INSTALL_ATTEMPT_MSG="Attempting to install Homebrew"
 HOMEBREW_INSTALL_COREUTIL_ASK_MSG="Would you like to install coreutils via Homebrew? (y/n) "
 HOMEBREW_INSTALL_COREUTIL_FAIL_MSG="coreutils installation failed. Please try manually."
@@ -168,8 +168,8 @@ HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
 HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
 HOMEBREW_CLEAN_CACHE=" ➜ Clearing contents of the Homebrew cache directory"
 INT_SPEED_CHECK="Testing network bandwidth and latency"
-INTERNET_AVAILABLE="✓ Connected"
-INTERNET_AVAILABLE_MSG="  ✓ Active internet connection"
+INTERNET_AVAILABLE="● Connected"
+INTERNET_AVAILABLE_MSG="  ● Active internet connection"
 INTERNET_UNAVAILABLE="✖ Disconnected"
 INTERNET_UNAVAILABLE_MSG="  ✖ Inactive internet connection"
 IOS_BACKUP_DIR_NONE_MSG="No iOS backup folder found"
@@ -211,7 +211,7 @@ PROMPT_USER_CONSENT_MSG="  ● Would you like to proceed with the script? (y/n) 
 PROMPT_VALIDATE_MSG="  ● Please respond with 'y' or 'n'"
 PURGE_CLEANED_MSG="RAM purge completed"
 PURGE_NOT_AVAILABLE_MSG="The 'purge' command is not available on this system"
-RAM_INFO="Memory Details"
+RAM_INFO="● Memory Details"
 RAM_SCAN="Scanning RAM to improve system performance"
 RAM_CLEAN=" ➜ RAM has been refreshed to boost efficiency"
 RAM_PURGE_MISS="Please ensure the 'purge' command is installed and accessible"
@@ -241,10 +241,12 @@ SUM_TEXT_DWL="  ✓ Old Downloads cleaned "
 SUM_TEXT_IOS_BCK="  ✓ iOS device backups cleaned "
 SUM_TEXT_ISO_DD="  ✓ Xcode DerivedData cleaned "
 SUM_TEXT_ISO_DS="  ✓ Xcode DeviceSupport cleaned "
-SUMMARY_SUB_TITLE_1_MSG="System Overview ${YELLOW} ⋆｡𖦹°⭒˚｡⋆"
-SUMMARY_SUB_TITLE_2_MSG="Cleanup Actions ${MAGENTA} ✎ᝰ.ᐟ⋆⑅˚₊"
-SUMMARY_SUB_TITLE_3_MSG="Post-Cleanup Report ${GREEN} ༘˚⋆𐙚｡⋆𖦹.✧˚"
+SUMMARY_SUB_TITLE_2_MSG="● Cleanup Actions ${MAGENTA} ✎ᝰ.ᐟ⋆⑅˚₊"
+SUMMARY_SUB_TITLE_3_MSG="● Post-Cleanup Report ${YELLOW} ༘˚⋆𐙚｡⋆𖦹.✧˚"
 SYSTEM_DETAILS_HEADER="System"
+SYS_DETAILS_HDR_1="● Hardware Profile"
+SYS_DETAILS_HDR_2="● Operating System"
+SYS_DETAILS_HDR_3="● Network Setup"
 SYSTEM_TRASH_CLEAN_MSG="System Trash is already empty"
 SYSTEM_TRASH_CLEANED_MSG="System Trash emptied successfully"
 SYSTEM_TRASH_NOT_ACCESSIBLE_MSG="Unable to access System Trash"
@@ -402,10 +404,11 @@ check_internet() {
   local random_index=$(( RANDOM % ${#DNS_SERVER[@]} + 1 ))
   local selected_dns="${DNS_SERVER[$random_index]}"
   if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
-    echo "${GREEN}$INTERNET_AVAILABLE_MSG (ping to $selected_dns successful)${RESET}"
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
+    echo "${YELLOW}  ● Ping to DNS $selected_dns successful${RESET}"
     return 0
   else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG (ping to $selected_dns unsuccessful)${RESET}"
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
     return 1
   fi
 }
@@ -510,7 +513,7 @@ clean_homebrew() {
     check_internet
     local internet_stat=$?
     if [ $status -eq 0 ]; then
-      echo "\n${CYAN}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
+      echo "\n${BLUE}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
       echo "" 
       brew autoremove
       echo "${GREY}$HOMEBREW_CLEAN_AR${RESET}"
@@ -917,6 +920,37 @@ human_readable_space() {
   fi
 }
 
+# This function identifies Mac Type by model
+mac_type_by_model() {
+  local model="$1"
+  local type="Unknown Mac type"
+  case "$model" in
+    # MacBook Air
+    Mac14,1|Mac14,2|Mac16,1|Mac16,12)
+      type="MacBook Air" ;;
+    # MacBook Pro (includes 13", 14", 16")
+    Mac14,3|Mac16,3|Mac18,1|Mac18,2|Mac18,3|Mac18,4|MacBookPro15,1|MacBookPro15,2)
+      type="MacBook Pro" ;;
+    # Mac mini
+    Mac14,6|Mac13,1)
+      type="Mac mini" ;;
+    # iMac (including 24-inch M1 and 27-inch Intel)
+    Mac19,1|Mac19,2|iMac20,1|iMac20,2|iMacPro1,1)
+      type="iMac" ;;
+    # Mac Studio
+    Mac13,5|Mac13,6)
+      type="Mac Studio" ;;
+    # Mac Pro
+    MacPro7,1)
+      type="Mac Pro" ;;
+
+    *)
+      type="Unknown Mac type"
+      ;;
+  esac
+  echo "$type"
+}
+
 # This function validates environment and dependencies before script execution
 pre_execution_check(){
   clear
@@ -967,7 +1001,7 @@ pre_execution_check(){
 
 # This function prints Homebrew information
 print_brew_info() {
-  echo "${CYAN}$HOMEBREW_INFO_HEADER_MSG${RESET}"
+  echo "${BLUE}$HOMEBREW_INFO_HEADER_MSG${RESET}"
   local b=$(brew --version | head -n1)
   local p=${commands[brew]}
   local r=$(brew --repository)
@@ -979,16 +1013,16 @@ print_brew_info() {
   local d=; brew doctor --quiet &>/dev/null && d="OK" || d="Doctor says brew is sick"
   local srv=$(brew services list 2>/dev/null | grep started | wc -l | tr -d ' '); [[ -z "$srv" ]] && srv=0
   echo "${GREY}"
-  echo "Path                  : $p"
-  echo "Version               : $b"
-  echo "Installed Formulae    : $f"
-  echo "Installed Casks       : $ck"
-  echo "Outdated Formulae     : $of"
-  echo "Outdated Casks        : $oc"
-  echo "Last Update           : $u"
-  echo "Disk Usage            : $duo"
-  echo "Doctor Status         : $d"
-  echo "Services Running      : $srv"
+  echo "  Path                  : $p"
+  echo "  Version               : $b"
+  echo "  Installed Formulae    : $f"
+  echo "  Installed Casks       : $ck"
+  echo "  Outdated Formulae     : $of"
+  echo "  Outdated Casks        : $oc"
+  echo "  Last Update           : $u"
+  echo "  Disk Usage            : $duo"
+  echo "  Doctor Status         : $d"
+  echo "  Services Running      : $srv"
   echo "${RESET}"
 }
 
@@ -1018,10 +1052,10 @@ print_script_info(){
   echo "${GREEN}$SCRIPT_INFO_MSG_3${RESET}"
   echo "${GREEN}$SCRIPT_INFO_MSG_4${RESET}"
   echo "${GREEN}$SCRIPT_START_MSG${RESET}\n"
-  echo "${BLUE}$DATE${RESET}"
-  echo "${BLUE}TX ID   $LOG_ID${RESET}"
-  echo "${BLUE}Version $VERSION${RESET}"
-  echo "${BLUE}Author  $AUTHOR${RESET}\n"
+  echo "${BLUE}Dated   : $DATE${RESET}"
+  echo "${BLUE}TX ID   : $LOG_ID${RESET}"
+  echo "${BLUE}Version : $VERSION${RESET}"
+  echo "${BLUE}Author  : $AUTHOR${RESET}\n"
 }
 
 # This function prints clean-up summary at the end of the script
@@ -1031,15 +1065,7 @@ print_summary() {
     (sleep 2.5) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
     echo ""
     fancy_title_box "$CLEANUP_MSG" "$BLUE"
-    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_1_MSG${RESET}${GREY}\n"
-    echo "Model     $MODEL"
-    echo "CPU       $CPU"
-    echo "Host      $HOST"
-    echo "RAM       $MEM"
-    echo "Storage   $DISK_SIZE"
-    echo "OS        $(get_macos_name) $OS_VERSION"
-    echo "Uptime    $(get_uptime)"
-    echo -e "${RESET}\n${CYAN}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
+    echo -e "${RESET}\n${BLUE}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
     check_internet
     # Status checks
     [[ $CACHES_CLEANED -gt 0 ]] && echo "${GREEN}$SUM_TEXT_CACHE($CACHES_CLEANED folders)${RESET}" || echo "${GREY}$USER_CACHE_NONE${RESET}"
@@ -1059,7 +1085,7 @@ print_summary() {
     MEM_AFTER_MB=$(( $(vm_stat | awk '/Pages free/ {print $3}' | sed 's/\\.//') * 4096 / 1024 / 1024 ))
     MEM_FREED_MB_RAW=$(echo "$MEM_AFTER_MB - $MEM_BEFORE_MB" | bc -l)
     MEM_FREED_MB=$(echo "$MEM_FREED_MB_RAW" | awk '{printf "%.3f", ($1 == int($1)) ? $1 : int($1)+1 + ($1-int($1))}')
-    echo -e "\n${CYAN}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
+    echo -e "\n${BLUE}$SUMMARY_SUB_TITLE_3_MSG${RESET}\n"
     if [[ "$RAM_PURGED" -eq 1 ]]; then
       (( MEM_FREED_MB > 0 )) && echo "${GREEN}  ● RAM Cleaned $MEM_FREED_MB Megabyte(MB)${RESET}" || echo "${GREY}$MEMORY_SPACE_UNCHANGED_MSG${RESET}"
     else
@@ -1090,29 +1116,29 @@ print_summary() {
 # This function prints System Details
 print_system_details(){
   fancy_text_header "$SYSTEM_DETAILS_HEADER"
-  echo "${GREY}"
-  echo "Model     $MODEL"
-  echo "Host      $HOST"
-  echo "User      $USER"
-  echo "UUID      $MAC_UUID"
-  echo "CPU       $CPU"
-  echo "Arch      $ARCH"
-  echo "RAM       $MEM"
-  echo "Storage   $DISK_SIZE"
-  echo "Serial    $SERIAL"
-  echo "OS        $(get_macos_name)"
-  echo "Version   $OS_VERSION"
-  echo "Build     $OS_BUILD"
-  echo "Uptime    $(get_uptime)"
+  echo "\n${BLUE}$SYS_DETAILS_HDR_1${GREY}\n"
+  echo "  Model     : $(mac_type_by_model $MODEL)"
+  echo "  CPU       : $CPU ($ARCH)"
+  echo "  RAM       : $MEM"
+  echo "  Storage   : $DISK_SIZE"
+  echo "  Serial    : $SERIAL"
+  echo "  UUID      : $MAC_UUID\n"
+  echo "${BLUE}$SYS_DETAILS_HDR_2${GREY}\n"
+  echo "  OS        : $(get_macos_name)"
+  echo "  Version   : $OS_VERSION (Build $OS_BUILD)"
+  echo "  Host      : $HOST"
+  echo "  User      : $USER"
+  echo "  Uptime    : $(get_uptime)\n"
+  echo "${BLUE}$SYS_DETAILS_HDR_3${GREY}\n"
   if [[ "$ACTIVE_IF" == "No active interface" ]]; then
-    echo "Internet  ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
+    echo "  Internet  : ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
-    echo "Internet  ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
+    echo "  Internet  : ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
     show_netspeed
-    echo "NetIface  $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
-    echo "IP        $IP"
-    echo "Real IP   $REAL_IP"
-    echo "MAC       $MAC"
+    echo "  NetIface  : $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
+    echo "  IP        : $IP"
+    echo "  Real IP   : $REAL_IP"
+    echo "  MAC       : $MAC"
   fi
   echo "${RESET}"
 }
@@ -1143,15 +1169,15 @@ print_ram_info() {
   # Memory Pressure
   local pressure=$(memory_pressure | awk '/System-wide memory free/ {getline; print $NF}')
   # Print the summary
-  echo "${CYAN}$RAM_INFO${RESET}"
+  echo "${BLUE}$RAM_INFO${RESET}"
   echo "${GREY}"
-  echo "Total RAM  : ${total_gb} GiB"
-  echo "Free RAM   : ${free_mb} MiB"
-  echo "Active     : ${active_mb} MiB"
-  echo "Inactive   : ${inactive_mb} MiB"
-  echo "Wired      : ${wired_mb} MiB"
-  echo "Compressed : ${compressed_mb} MiB"
-  echo "Memory     : ${pressure} FREE"
+  echo "  Total RAM  : ${total_gb} GB"
+  echo "  Free RAM   : ${free_mb} MB"
+  echo "  Active     : ${active_mb} MB"
+  echo "  Inactive   : ${inactive_mb} MB"
+  echo "  Wired      : ${wired_mb} MB"
+  echo "  Compressed : ${compressed_mb} MB"
+  echo "  Memory     : ${pressure} FREE"
   echo "${RESET}"
   clean_memory_ram
 }
@@ -1229,9 +1255,9 @@ show_netspeed() {
   # Cleanup
   rm -f "$tmpfile"
   # Final output
-  echo "Download  $dl"
-  echo "Upload    $ul"
-  echo "Latency   $lat"
+  echo "  Download  : $dl"
+  echo "  Upload    : $ul"
+  echo "  Latency   : $lat"
 }
 
 # This functions generate dynamic spinner
