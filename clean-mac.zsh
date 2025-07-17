@@ -1143,12 +1143,12 @@ print_ram_info() {
   # Print the summary
   echo "${CYAN}$RAM_INFO${RESET}"
   echo "${GREY}"
-  echo "Total RAM  : ${total_gb} GB"
-  echo "Free RAM   : ${free_mb} MB"
-  echo "Active     : ${active_mb} MB"
-  echo "Inactive   : ${inactive_mb} MB"
-  echo "Wired      : ${wired_mb} MB"
-  echo "Compressed : ${compressed_mb} MB"
+  echo "Total RAM  : ${total_gb} GiB"
+  echo "Free RAM   : ${free_mb} MiB"
+  echo "Active     : ${active_mb} MiB"
+  echo "Inactive   : ${inactive_mb} MiB"
+  echo "Wired      : ${wired_mb} MiB"
+  echo "Compressed : ${compressed_mb} MiB"
   echo "Memory     : ${pressure} FREE"
   echo "${RESET}"
   clean_memory_ram
@@ -1218,7 +1218,8 @@ working_in_progress() {
       sleep 0.1
     done
   done
-  echo "" > /dev/tty
+  # Clear the spinner line
+  printf "\r\033[K" > /dev/tty
 }
 
 # This functions ensures all background jobs are killed on exit
