@@ -168,9 +168,9 @@ HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
 HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
 HOMEBREW_CLEAN_CACHE=" ➜ Clearing contents of the Homebrew cache directory"
 INTERNET_AVAILABLE="✓ Connected"
-INTERNET_AVAILABLE_MSG="  ✓ Internet connection is active"
+INTERNET_AVAILABLE_MSG="  ✓ Active internet connection"
 INTERNET_UNAVAILABLE="✖ Disconnected"
-INTERNET_UNAVAILABLE_MSG="  ✖ No internet connection detected"
+INTERNET_UNAVAILABLE_MSG="  ✖ Inactive internet connection"
 IOS_BACKUP_DIR_NONE_MSG="No iOS backup folder found"
 IOS_BACKUP_FOUND_MSG="Old iOS backups located"
 IOS_BACKUP_NONE_MSG="No outdated iOS backups found"
@@ -401,10 +401,10 @@ check_internet() {
   local random_index=$(( RANDOM % ${#DNS_SERVER[@]} + 1 ))
   local selected_dns="${DNS_SERVER[$random_index]}"
   if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
-    echo "${GREEN}$INTERNET_AVAILABLE_MSG (Pinged ➜ $selected_dns)${RESET}"
+    echo "${GREEN}$INTERNET_AVAILABLE_MSG (ping to $selected_dns successful)${RESET}"
     return 0
   else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG (Pinged ➜ $selected_dns)${RESET}"
+    echo "${RED}$INTERNET_UNAVAILABLE_MSG (ping to $selected_dns unsuccessful)${RESET}"
     return 1
   fi
 }
@@ -834,12 +834,27 @@ fancy_text_header() {
   printf "${RESET}"
 }
 
-# Generates a random alphanumeric string like "A1B2C-3ED4E-F5G6-H7I8-J9K0"
-generate_random_string() {
-  local raw key
-  raw=$(LC_ALL=C tr -dc 'A-Z0-9' < /dev/urandom | head -c 25)
-  key="${raw:0:5}-${raw:5:5}-${raw:10:5}-${raw:15:5}-${raw:20:5}"
-  echo "$key"
+# This function detects Hardware Port by Device
+get_hardware_port_by_device() {
+  local device="$1"
+  local found=0
+  local hwport=""
+  local current_port=""
+    while IFS= read -r line; do
+    [[ $line =~ ^Hardware\ Port:\ (.*) ]] && current_port="${match[1]}"
+    [[ $line =~ ^Device:\ (${device})$ ]] && hwport="$current_port" && found=1
+  done < <(networksetup -listallhardwareports)
+  if (( found )); then
+    echo "$hwport"
+  else
+    echo "Device '$device' not found" >&2
+    return 1
+  fi
+}
+
+# This function gets free disk space in bytes (for root volume)
+get_free_space() {
+  df -k / | tail -1 | awk '{print $4 * 1024}'
 }
 
 # This function shows macOS version name
@@ -863,9 +878,12 @@ get_macos_name() {
   echo "macOS $macos_name"
 }
 
-# This function gets free disk space in bytes (for root volume)
-get_free_space() {
-  df -k / | tail -1 | awk '{print $4 * 1024}'
+# Generates a random alphanumeric string like "A1B2C-3ED4E-F5G6-H7I8-J9K0"
+generate_random_string() {
+  local raw key
+  raw=$(LC_ALL=C tr -dc 'A-Z0-9' < /dev/urandom | head -c 25)
+  key="${raw:0:5}-${raw:5:5}-${raw:10:5}-${raw:15:5}-${raw:20:5}"
+  echo "$key"
 }
 
 # This function gets simple uptime (returns "X days", "Y hours", etc.)
@@ -1090,7 +1108,7 @@ print_system_details(){
   else
     echo "Internet  ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
   fi
-  echo "NetIface  $ACTIVE_IF"
+  echo "NetIface  $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
   echo "IP        $IP"
   echo "Real IP   $REAL_IP"
   echo "MAC       $MAC"
