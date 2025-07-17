@@ -1109,11 +1109,11 @@ print_system_details(){
   else
     echo "Internet  ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
     show_netspeed
+    echo "NetIface  $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
+    echo "IP        $IP"
+    echo "Real IP   $REAL_IP"
+    echo "MAC       $MAC"
   fi
-  echo "NetIface  $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
-  echo "IP        $IP"
-  echo "Real IP   $REAL_IP"
-  echo "MAC       $MAC"
   echo "${RESET}"
 }
 
