@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.6.8-20250717-ARL83
+# Version  : 2.7.0-20250718-K559Y
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -84,7 +84,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.6.8-20250717-ARL83"
+VERSION="2.7.0-20250718-K559Y"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -838,6 +838,21 @@ fancy_text_header() {
   printf "${RESET}"
 }
 
+# This function calculates realistic available memory
+get_available_memory_percent() {
+  local page_size=4096
+  local free=$(vm_stat | awk '/Pages free/ {gsub(/[^0-9]/, "", $3); print $3}')
+  local inactive=$(vm_stat | awk '/Pages inactive/ {gsub(/[^0-9]/, "", $3); print $3}')
+  local compressed=$(vm_stat | awk '/Pages occupied by compressor/ {gsub(/[^0-9]/, "", $5); print $5}')
+  local active=$(vm_stat | awk '/Pages active/ {gsub(/[^0-9]/, "", $3); print $3}')
+  local wired=$(vm_stat | awk '/Pages wired down/ {gsub(/[^0-9]/, "", $4); print $4}')
+  # Available = Free + Inactive + Compressed
+  local available=$((free + inactive + compressed))
+  local total=$((free + inactive + compressed + active + wired))
+  local available_percent=$((100 * available / total))
+  echo "${available_percent}%"
+}
+
 # This function detects Hardware Port by Device
 get_hardware_port_by_device() {
   local device="$1"
@@ -1177,7 +1192,7 @@ print_ram_info() {
   echo "  Inactive   : ${inactive_mb} MB"
   echo "  Wired      : ${wired_mb} MB"
   echo "  Compressed : ${compressed_mb} MB"
-  echo "  Memory     : ${pressure} FREE"
+  echo "  Memory     : $(get_available_memory_percent) FREE"
   echo "${RESET}"
   clean_memory_ram
 }
@@ -1288,7 +1303,7 @@ write_log(){
 }
 
 # ───── Execution STARTS ─────
-
+  
 # Measure free disk space before cleanup
 space_before=$(get_free_space)
 
