@@ -1056,7 +1056,7 @@ print_hints() {
     print -n -P "$word "
     (( i++ % 20 == 0 )) && print
   done
-  print -P "%f\n"
+  print -P "${RESET}\n"
 }
 
 # This function prints script info as header
