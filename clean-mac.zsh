@@ -9,7 +9,7 @@ setopt nullglob extended_glob localoptions no_nomatch
 # ------------------------------------------------------------------------------
 # clean-mac.zsh — macOS cleanup utility
 # Author   : Prasit Chanda
-# Version  : 2.7.0-20250718-K559Y
+# Version  : 2.7.2-20250718-KXO17
 # License  : Apache-2.0
 # github   : https://github.com/prasit-chanda/clean-mac.git
 # Description: Cleans caches, logs, temp files, old downloads, Homebrew leftovers
@@ -38,6 +38,7 @@ ACTIVE_IF=$(route get default 2>/dev/null | awk '/interface: / {print $2}')
 AUTHOR="Prasit B Chanda"
 CPU="$(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.physicalcpu) cores"
 DNS_SERVER=("1.1.1.1" "8.8.8.8" "208.67.222.222" "9.9.9.9" "45.90.28.0")
+DNS=${DNS_SERVER[$((RANDOM % ${#DNS_SERVER[@]} + 1))]}
 DATE=$(date "+%a, %d %b %Y %I:%M:%S %p")
 MAIN_DISK=$(diskutil info / | awk -F: '/Device Node/ {print $2}' | xargs)
 DISK_SIZE=$(diskutil info "$MAIN_DISK" | awk -F: '/Disk Size/ {print $2}' | cut -d'(' -f1 | xargs)
@@ -84,7 +85,7 @@ if [[ -z "$IP" ]]; then
   IP="IP not found"
 fi
 REAL_IP=$(curl -s https://ipinfo.io/ip || echo "Not Found")
-VERSION="2.7.0-20250718-K559Y"
+VERSION="2.7.2-20250718-KXO17"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
@@ -143,11 +144,11 @@ DOWNLOADS_FILE_CLEANED_MSG="Outdated downloads removed successfully"
 DS_NONE="  ● Xcode DeviceSupport - no connected device detected"
 ENV_DEPENDENCIES_OK_MSG="  ● All required runtime environments complied"
 ENV_DEPENDENCIES_FAIL_MSG="  ✖ Some runtime environments are missing. Please check your environment"
-FOOTER_LOG_DIR_MSG="Folder   $WD"
-FOOTER_LOG_FILE_MSG="Log      $LOG_FILE"
-FOOTER_SCRIPT_VERSION_MSG="Version  $VERSION"
+FOOTER_LOG_DIR_MSG="Folder   : $WD"
+FOOTER_LOG_FILE_MSG="Log      : $LOG_FILE"
+FOOTER_SCRIPT_VERSION_MSG="Version  : $VERSION"
 HOMEBREW_CLEANED_MSG="Homebrew cleanup completed"
-HOMEBREW_CLEAN_HEADER_MSG="Performing Homebrew cleanup"
+HOMEBREW_CLEAN_HEADER_MSG="● Performing Homebrew cleanup"
 HOMEBREW_CLEANUP_SKIPPED_MSG="Skipped Homebrew cleanup (Homebrew not found or offline)"
 HOMEBREW_INFO_HEADER_MSG="● Homebrew Status"
 HOMEBREW_INSTALL_ATTEMPT_MSG="Attempting to install Homebrew"
@@ -162,7 +163,7 @@ HOMEBREW_NONE="  ✖ Unable to clean Homebrew. It may be offline"
 HOMEBREW_NOT_INSTALLED_COREUTIL_MSG="coreutils not installed. Please check your Homebrew setup"
 HOMEBREW_NOT_INSTALLED_MSG="Homebrew is not installed"
 HOMEBREW_OK="  ✓ Homebrew cleanup completed successfully"
-HOMEBREW_INTERNET_CHECK="Checking internet connectivity"
+HOMEBREW_INTERNET_CHECK="● Checking internet connectivity"
 HOMEBREW_INTERNET_DOWN="Internet not available. Please check your connection"
 HOMEBREW_CLEAN_AR=" ➜ Removing unnecessary packages not directly installed"
 HOMEBREW_CLEAN_OV=" ➜ Cleaning up old versions of Homebrew packages"
@@ -184,6 +185,7 @@ LOG_NONE="  ● No old log files to delete"
 MEM_NONE="  ● No memory to free at this time"
 MEM_OK="  ✓ Memory was cleared to enhance performance"
 MEMORY_SPACE_UNCHANGED_MSG="  ● No changes in memory usage detected"
+NET_SPEED_NO_CMD="'networkquality' not found (macOS Monterey+ required)"
 NO_DOCKER_ON_SYS=" ➜ Docker installation not detected or unavailable"
 NO_FILES_TO_CLEAN_MSG=" ➜ No files detected for cleanup"
 NO_HOMEBREW="Homebrew is not available in the system path"
@@ -400,23 +402,25 @@ check_dependencies() {
 # This function checks if the user has an internet connection
 # This uses ping to a reliable DNS server
 check_internet() {
-  local timeout=5
-  local random_index=$(( RANDOM % ${#DNS_SERVER[@]} + 1 ))
-  local selected_dns="${DNS_SERVER[$random_index]}"
-  if ping -c 1 -W $timeout "$selected_dns" >/dev/null 2>&1; then
+  # Step 1: Try ping (fast, low-level)
+  if ping -c1 -W1 "$DNS" &>/dev/null; then
     echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
-    echo "${YELLOW}  ● Ping to DNS $selected_dns successful${RESET}"
+    echo "${YELLOW}    ➜ Ping to DNS $DNS successful${RESET}"
     return 0
-  else
-    echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
-    return 1
   fi
+  # Step 2: Try curl as fallback (some systems block ICMP/ping)
+  if curl -s --head --connect-timeout 2 "$DNS" | grep -q "200 OK"; then
+    echo "${YELLOW}    ➜ Internet is reachacble${RESET}"
+    return 0
+  fi
+  echo "${RED}$INTERNET_UNAVAILABLE_MSG${RESET}"
+  return 1
 }
 
 # This functions checks Runtime Environment
 check_runtime_environment(){
   echo -e "${RESET}${CYAN}$CHK_ENV_MSG_1${RESET}\n"
-  sleep 0.2
+  sleep 0.1
   # Check if running in macOS
   if [[ "$(uname)" != "Darwin" ]]; then
     echo "${RED}$UNSUPPORTED_OS_MSG${RESET}" >&2
@@ -424,7 +428,7 @@ check_runtime_environment(){
   else
     echo "${GREEN}$CHK_ENV_MSG_2${RESET}"
   fi
-  sleep 0.2
+  sleep 0.1
   # Check if running in zsh console
   if [[ -z "$ZSH_VERSION" ]]; then
     echo "${RED}$NOT_ZSH_MSG${RESET}"
@@ -432,7 +436,7 @@ check_runtime_environment(){
   else
     echo "${GREEN}$CHK_ENV_MSG_3${RESET}"
   fi
-  sleep 0.2
+  sleep 0.1
   # Warn if running as root (not recommended)
   if [[ "$EUID" -eq 0 ]]; then
     echo "${RED}$ROOT_WARNING_MSG${RESET}"  >&2
@@ -507,13 +511,14 @@ clean_homebrew() {
   fancy_text_header "$CLEANING_HOMEBREW_HEADER"
   print_hints "$CLEANING_HOMEBREW_HINT"
   if command -v brew >/dev/null 2>&1; then
-    print_brew_info
     # Check internet connectivity via DNS ping
-    echo "${MAGENTA}$HOMEBREW_INTERNET_CHECK${RESET}\n"
+    echo "${BLUE}$HOMEBREW_INTERNET_CHECK${RESET}\n"
     check_internet
-    local internet_stat=$?
-    if [ $status -eq 0 ]; then
-      echo "\n${BLUE}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
+    local istatus=$?
+    echo ""
+    if (( istatus == 0 )); then
+      print_brew_info
+      echo "${BLUE}${HOMEBREW_CLEAN_HEADER_MSG}${RESET}"
       echo "" 
       brew autoremove
       echo "${GREY}$HOMEBREW_CLEAN_AR${RESET}"
@@ -1010,7 +1015,7 @@ pre_execution_check(){
     print_summary
     exit 1
   else
-    (sleep 2.5) & working_in_progress $! "$WRK_IN_PRG_PRE_CHECK"
+    (sleep 1) & working_in_progress $! "$WRK_IN_PRG_PRE_CHECK"
   fi
 }
 
@@ -1077,7 +1082,7 @@ print_script_info(){
 print_summary() {
   # Only show Results section if not exited by user
   if [[ "$USER_EXITED" -ne 1 ]]; then
-    (sleep 2.5) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
+    (sleep 1) & working_in_progress $! "$WRK_IN_PRG_SUMMARY"
     echo ""
     fancy_title_box "$CLEANUP_MSG" "$BLUE"
     echo -e "${RESET}\n${BLUE}$SUMMARY_SUB_TITLE_2_MSG${RESET}\n"
@@ -1148,9 +1153,9 @@ print_system_details(){
   if [[ "$ACTIVE_IF" == "No active interface" ]]; then
     echo "  Internet  : ${RED}$INTERNET_UNAVAILABLE${RESET}${GREY}"
   else
-    echo "  Internet  : ${GREEN}$INTERNET_AVAILABLE${RESET}${GREY}"
+    echo "  Internet  : ${GREEN}$INTERNET_AVAILABLE${RESET}"
     show_netspeed
-    echo "  NetIface  : $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
+    echo "${GREY}  NetIface  : $(get_hardware_port_by_device $ACTIVE_IF) ($ACTIVE_IF)"
     echo "  IP        : $IP"
     echo "  Real IP   : $REAL_IP"
     echo "  MAC       : $MAC"
@@ -1246,14 +1251,14 @@ provide_what_script-does(){
   echo "$TASK_SHOW_SUMMARY"
   sleep 0.1
   echo "$TASK_CLEAN_EXIT${RESET}\n"
-  sleep 1
+  sleep 0.1
 }
 
 # This function measures network bandwidth and latency
 show_netspeed() {
   local tmpfile=$(mktemp)
   if ! command -v networkquality &>/dev/null; then
-    echo "'networkquality' not found (macOS Monterey+ required)" >&2
+    echo "${RED}$NET_SPEED_NO_CMD${RESET}"
     return 1
   fi
   # Run networkquality in the background and redirect output to temp file
@@ -1270,9 +1275,9 @@ show_netspeed() {
   # Cleanup
   rm -f "$tmpfile"
   # Final output
-  echo "  Download  : $dl"
+  echo "${GREY}  Download  : $dl"
   echo "  Upload    : $ul"
-  echo "  Latency   : $lat"
+  echo "  Latency   : $lat${RESET}"
 }
 
 # This functions generate dynamic spinner
@@ -1282,7 +1287,7 @@ working_in_progress() {
   local spin='-\|/'
   while kill -0 "$pid" 2>/dev/null; do
     for i in {0..3}; do
-      printf "\r[%c] $message" "${spin:$i:1}" > /dev/tty
+      printf "${GREY}\r[%c] $message${RESET}  " "${spin:$i:1}" > /dev/tty
       sleep 0.1
     done
   done
@@ -1303,7 +1308,7 @@ write_log(){
 }
 
 # ───── Execution STARTS ─────
-  
+
 # Measure free disk space before cleanup
 space_before=$(get_free_space)
 
@@ -1321,51 +1326,55 @@ trap cleanup EXIT INT TERM
 
 # Print the script Title in a fancy box with Details
 print_script_info
-sleep 1
+sleep 0.5
 
 # Print System Details
 print_system_details
-sleep 1
+sleep 0.5
 
 # Step 1: Clear User Caches
 clean_user_caches
-sleep 1
+sleep 0.5
 
 # Step 2: Clean iOS device Backups
 clean_ios_backups
-sleep 1
+sleep 0.5
 
 # Step 3: Clean Xcode DerivedData and device support
 clean_xcode_cruft
-sleep 1
+sleep 0.5
 
 # Step 4: Clean Docker system (if installed)
 clean_docker
-sleep 1
+sleep 0.5
 
 # Step 5: Clean old System Logs older than 7 days
 clean_old_logs
-sleep 1
+sleep 0.5
 
 # Step 6: Empty Trash/Bin for user, root, and all mounted volumes
 clean_trash
+sleep 0.5
 
 # Step 7: Clean Temporary Files older than 3 days
 clean_all_temp_dirs
-sleep 1
+sleep 0.5
 
 # Step 8: Clean old Downloads
 clean_old_downloads
-sleep 1
+sleep 0.5
 
 # Step 9: Homebrew Cleanup
 clean_homebrew
+sleep 0.5
 
 # Step 10: Purge inactive memory
 print_ram_info
+sleep 0.5
 
 # Print the cleanup summary at the end
 print_summary
+sleep 0.5
 
 # Ensure all background jobs are killed on exit
 terminate_script
