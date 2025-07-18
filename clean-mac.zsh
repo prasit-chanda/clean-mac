@@ -22,14 +22,14 @@ setopt nullglob extended_glob localoptions no_nomatch
 # Reset
 RESET=$'\e[0m'
 # REGULAR Colors
-RED=$'\e[38;5;9m'
-GREEN=$'\e[32m'
-GREY=$'\e[38;5;238m'
-YELLOW=$'\e[33m'
-BLUE=$'\e[38;5;32m'
-MAGENTA=$'\e[35m'
-CYAN=$'\e[36m'
-BGREY=$'\e[1;90m'
+RED=$'\e[22;38;5;9m'
+GREEN=$'\e[22;32m'
+GREY=$'\e[22;38;5;238m'
+YELLOW=$'\e[22;33m'
+BLUE=$'\e[22;38;5;32m'
+MAGENTA=$'\e[22;35m'
+CYAN=$'\e[22;36m'
+BGREY=$'\e[22;90m'
 
 # ───── Global Variables ─────
 
