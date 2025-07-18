@@ -89,6 +89,29 @@ VERSION="2.7.2-20250718-KXO17"
 LOG_ID="x-x-x-x-x"
 XCODE_DERIVED_DATA="${HOME}/Library/Developer/Xcode/DerivedData"
 XCODE_DEVICE_SUPPORT="${HOME}/Library/Developer/Xcode/iOS DeviceSupport"
+typeset -A DNS_MAP
+DNS_MAP=(
+  "1.1.1.1"        "Cloudflare"
+  "1.0.0.1"        "Cloudflare (Secondary)"
+  "8.8.8.8"        "Google"
+  "8.8.4.4"        "Google (Secondary)"
+  "208.67.222.222" "OpenDNS"
+  "208.67.220.220" "OpenDNS (Secondary)"
+  "9.9.9.9"        "Quad9"
+  "149.112.112.112" "Quad9 (Secondary)"
+  "45.90.28.0"     "NextDNS"
+  "45.90.30.0"     "NextDNS (Secondary)"
+  "185.228.168.9"  "CleanBrowsing"
+  "185.228.169.9"  "CleanBrowsing (Secondary)"
+  "8.26.56.26"     "Comodo Secure DNS"
+  "8.20.247.20"    "Comodo Secure DNS (Secondary)"
+  "94.140.14.14"   "AdGuard"
+  "94.140.15.15"   "AdGuard (Secondary)"
+  "77.88.8.8"      "Yandex DNS"
+  "77.88.8.1"      "Yandex DNS (Secondary)"
+  "84.200.69.80"   "DNS.Watch"
+  "84.200.70.40"   "DNS.Watch (Secondary)"
+)
 PROTECTED_CACHES=(
   "CloudKit"
   "com.apple.CloudPhotosConfiguration"
@@ -405,7 +428,8 @@ check_internet() {
   # Step 1: Try ping (fast, low-level)
   if ping -c1 -W1 "$DNS" &>/dev/null; then
     echo "${GREEN}$INTERNET_AVAILABLE_MSG${RESET}"
-    echo "${YELLOW}    ➜ Ping to DNS $DNS successful${RESET}"
+    [[ -n "$DNS" && -n "${DNS_MAP[$DNS]}" ]] && echo "${YELLOW}    ➜ DNS: ${GREEN}${DNS_MAP[$DNS]}${RESET}"
+    echo "${YELLOW}    ➜ Pinging ${GREEN}$DNS ${YELLOW}successful${RESET}"
     return 0
   fi
   # Step 2: Try curl as fallback (some systems block ICMP/ping)
