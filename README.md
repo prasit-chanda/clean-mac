@@ -1,54 +1,64 @@
 ॐ नमः शिवाय
 # 🧹 Clean Smart, not Hard
 
-**Script:** `clean-mac`  
-**Author:** Prasit Chanda  
+**Binary:** `clean-mac`  
+**Author:** Prasit B Chanda  
 **Platform:** macOS  
 
 ---
 
 ## 🤷 What is clean-mac?
 
-**clean-mac** is your Mac’s unofficial janitor — the one that actually shows up. 
-With a single command, it scrubs away system and user junk: caches, logs, temporary 
-clutter, dusty old downloads, and whatever’s been rotting in your Trash. It even cleans 
-up after Homebrew’s bad habits (because who else will?). At the end, it smugly tells you 
-how much space it saved — and logs every step, just in case you want receipts.
+**clean-mac** politely barges into your Mac, checks if it has the tools to do its 
+job (and installs them if you’ve been slacking), then proceeds to clean up your digital 
+dumpster — clearing caches, logs, temp files, Trash, Xcode junk, ancient iOS backups, 
+Docker leftovers, and even those decade-old Downloads you forgot about. It frees up 
+memory, shows off your system info like a flex, logs every step so you can pretend 
+you planned this all along, and wraps things up by safely exiting like the responsible 
+little automation it is. All that, with zero cost and maximum attitude.
 
 ---
 
 ## 🧠 Features
 
-🎁 **Completely Free:** 100% free for all Mac users.  
-🚀 **One-Click Cleanup:** Cleans caches, logs, temp files, downloads, and Trash.  
-🍺 **Homebrew Support:** Removes old Homebrew files and checks dependencies.  
-🖥️ **System Info:** Shows your Mac’s OS version, hardware, network, and uptime.  
-📟 **Clear Output:** Color-coded, step-by-step messages for every action.  
-📝 **Full Log:** Saves a timestamped log file for every session.  
-
+🎁 **Completely Free:** 100% free for all Mac users — no ads, no strings.
+🚀 **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
+🍺 **Homebrew Support:** Removes old files and checks for missing dependencies automatically.
+🖥️ **System Info:** Displays your Mac’s OS version, hardware specs, network, and uptime.
+📟 **Clear Output:** Color-coded, step-by-step terminal messages for every action.
+📝 **Full Log:** Generates a timestamped log file for each session for future review.
+🧹 **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
+📦 **iOS Backup Removal:** Clears old iOS device backups (if found).
+🐳 **Docker Cleanup:** Prunes unused containers, images, and volumes safely.
+🧪 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
+📦 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
+🧠 **Memory Optimizer:** Frees up inactive memory to improve responsiveness.
+📊 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
+🔒 **Safe Exit:** Gracefully terminates all background jobs on script completion.
 ---
 
 ## 👀 What You See
 
-📋 **System Details:** Hardware, OS, network, and uptime at the start.  
+📋 **System Details:** Hardware, OS, network, RAM usage and uptime at the start.  
+🍺 **Homebrew Status:** Checks if Homebrew is installed, updated, and healthy.
 🏃‍♂️ **Cleanup Progress:** See what’s cleaned, skipped, or already tidy — in real time.  
-✍️ **Summary:** Total disk space freed and a link to your log file.
+✍️ **Summary:** Total disk and memory space freed along with execution timeframe.
 
 ---
 
 ## 💡 How to Use
 
-1. **Download:** Save the script as `clean-mac.zsh` in your workspace.
+1. **Download:** Save the `clean-mac` in your workspace.
 2. **Make Executable:**  
    ```sh
    chmod +x clean-mac
    ```
-3. **Run the Script:**  
+3. **Run the Binary:**  
    ```sh
    ./clean-mac
    ```
 4. **Check Logs:**  
-   A log file is created in the folder where you run the script.
+   A log file is created in the folder where you run clean-mac.
 
 ---
 
