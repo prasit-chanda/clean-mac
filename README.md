@@ -1,5 +1,5 @@
 ॐ नमः शिवाय
-# 🧹 Clean Smart, not Hard
+# 🫧 Clean Smart, not Hard
 
 `clean-mac`  
 **Author:** Prasit B Chanda  
