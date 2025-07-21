@@ -70,12 +70,16 @@ little automation it is. All that, with zero cost and maximum attitude.
    ```sh
    chmod +x clean-mac
    ```
-3. **Run clean-mac:**  
+3. **Clear the quarantine flag (for internet-downloaded files):**  
+   ```sh
+   xattr -d com.apple.quarantine clean-mac
+   ```
+4. **Run clean-mac:**  
    ```sh
    ./clean-mac
    ```
-4. **Check Logs:**  
-   A log file is created in the folder where you run clean-mac.
+5. **Check Logs:**  
+  A log file (e.g., clean-mac-1753110067.log) is saved in the folder where you run clean-mac.
 
 ---
 
