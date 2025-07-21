@@ -1,15 +1,19 @@
-ॐ नमः शिवाय
+**ॐ नमः शिवाय**
+
 # 🫧 Clean Smart, not Hard
 
 `clean-mac`  
-**Author:** Prasit B Chanda  
-**Platform:** macOS  
+
+**Author** : Prasit Bikash Chanda  
+**Platform** : macOS   
+
+ ᥫ᭡١٥٧٤♡ ⋆˚꩜｡ ✮⋆˙ ᢉ𐭩
 
 ---
 
 ## 🤷 What is clean-mac?
 
-**clean-mac** politely barges into your Mac, checks if it has the tools to do its 
+**🫧 clean-mac** politely barges into your Mac, checks if it has the tools to do its 
 job (and installs them if you’ve been slacking), then proceeds to clean up your digital 
 dumpster — clearing caches, logs, temp files, Trash, Xcode junk, ancient iOS backups, 
 Docker leftovers, and even those decade-old Downloads you forgot about. It frees up 
@@ -19,11 +23,11 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ---
 
-## 🧠 Features
+## 💃🏻 Features
 
 🎁 **Completely Free:** 100% free for all Mac users — no ads, no strings.
 
-🚀 **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
+⚡ **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
 
 🍺 **Homebrew Support:** Removes old files and checks for missing dependencies automatically.
 
@@ -33,19 +37,19 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 📝 **Full Log:** Generates a timestamped log file for each session for future review.
 
-🧹 **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
+✨ **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
 
-📦 **iOS Backup Removal:** Clears old iOS device backups (if found).
+🍎 **iOS Backup Removal:** Clears old iOS device backups (if found).
 
 🐳 **Docker Cleanup:** Prunes unused containers, images, and volumes safely.
 
-🧪 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
+📂 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
 
-📦 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
+🍺 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
 
 🧠 **Memory Optimizer:** Frees up inactive memory to improve responsiveness.
 
-📊 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
+📋 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
 
 🔒 **Safe Exit:** Gracefully terminates all background jobs on script completion.
 
@@ -53,7 +57,7 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ## 👀 What You See
 
-📋 **System Details:** Hardware, OS, network, RAM usage and uptime at the start.
+🧩 **System Details:** Hardware, OS, network, RAM usage and uptime at the start.
 
 🍺 **Homebrew Status:** Checks if Homebrew is installed, updated, and healthy.
 
@@ -63,7 +67,7 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ---
 
-## 💡 How to Use
+## 👵🏼 How to Use
 
 1. **Download:** Save the `clean-mac` in your workspace.
 2. **Make Executable:**  
