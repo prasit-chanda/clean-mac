@@ -1,7 +1,7 @@
 ॐ नमः शिवाय
 # 🧹 Clean Smart, not Hard
 
-**Binary:** `clean-mac`  
+`clean-mac`  
 **Author:** Prasit B Chanda  
 **Platform:** macOS  
 
@@ -22,26 +22,43 @@ little automation it is. All that, with zero cost and maximum attitude.
 ## 🧠 Features
 
 🎁 **Completely Free:** 100% free for all Mac users — no ads, no strings.
+
 🚀 **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
+
 🍺 **Homebrew Support:** Removes old files and checks for missing dependencies automatically.
+
 🖥️ **System Info:** Displays your Mac’s OS version, hardware specs, network, and uptime.
+
 📟 **Clear Output:** Color-coded, step-by-step terminal messages for every action.
+
 📝 **Full Log:** Generates a timestamped log file for each session for future review.
+
 🧹 **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
+
 📦 **iOS Backup Removal:** Clears old iOS device backups (if found).
+
 🐳 **Docker Cleanup:** Prunes unused containers, images, and volumes safely.
+
 🧪 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
+
 📦 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
+
 🧠 **Memory Optimizer:** Frees up inactive memory to improve responsiveness.
+
 📊 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
+
 🔒 **Safe Exit:** Gracefully terminates all background jobs on script completion.
+
 ---
 
 ## 👀 What You See
 
-📋 **System Details:** Hardware, OS, network, RAM usage and uptime at the start.  
+📋 **System Details:** Hardware, OS, network, RAM usage and uptime at the start.
+
 🍺 **Homebrew Status:** Checks if Homebrew is installed, updated, and healthy.
-🏃‍♂️ **Cleanup Progress:** See what’s cleaned, skipped, or already tidy — in real time.  
+
+🏃‍♂️ **Cleanup Progress:** See what’s cleaned, skipped, or already tidy — in real time.
+
 ✍️ **Summary:** Total disk and memory space freed along with execution timeframe.
 
 ---
@@ -53,7 +70,7 @@ little automation it is. All that, with zero cost and maximum attitude.
    ```sh
    chmod +x clean-mac
    ```
-3. **Run the Binary:**  
+3. **Run clean-mac:**  
    ```sh
    ./clean-mac
    ```
