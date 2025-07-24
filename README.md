@@ -67,7 +67,7 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ---
 
-## 👵🏼 How to Use
+## 👩🏻‍💻 How to Use
 
 1. **Download:** Save the `clean-mac.run` in your workspace.
 2. **Make Executable:**  
@@ -86,5 +86,18 @@ little automation it is. All that, with zero cost and maximum attitude.
   A log file (e.g., clean-mac-1753110067.log) is saved in the folder where you run clean-mac.
 
 ---
+
+## 👩🏻‍🔬 Tip
+
+Run `clean-mac.run` regularly (e.g., weekly) to keep your system running at peak performance.
+
+---
+
+🧪 **Tested on:** macOS running on Apple Silicon  
+🔐 **Safe & Non-destructive:** All operations are read-only or cleanup tasks. No system settings are changed without your control.
+
+---
+
+
 
 ꧁.˳·˖✶𓆩 Give your Mac a fresh start — safely, quickly, and with confidence 𓆪✶˖·˳.꧂
