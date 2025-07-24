@@ -2,7 +2,7 @@
 
 # 🫧 Clean Smart, not Hard
 
-`clean-mac.run`  
+`clean-mac`  
 
 **Author**   : `Prasit Bikash Chanda`  
 **Platform** : `macOS powered by Apple Silicon (M1, M2, M3, M4)`
@@ -61,16 +61,17 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ## 👩🏻‍💻 How to Use?
 
- - **Download:** Save the `clean-mac.run` in your workspace.
- - **Make Executable:** `chmod +x clean-mac.run`
- - **Clear the quarantine flag:** `xattr -d com.apple.quarantine clean-mac.run`
- - **Run clean-mac.run:** `./clean-mac.run`
- - **Check Logs:** `e.g. clean-mac-1753110067.log`
+ - **Download** the `clean-mac.run` in your workspace.
+ - **Make it Executable** by `chmod +x clean-mac.run`
+ - **Clear the quarantine flag** by `xattr -d com.apple.quarantine clean-mac.run` (if any)
+ - **Run clean-mac** by `./clean-mac.run`
+ - **Log DIR** `$HOME/clean-mac` `e.g. /Users/ozzy-osbourne/clean-mac`
+ - **Log File** `e.g. clean-mac-1753110067.log`
     
-## 👩🏻‍🔬 Tips
+## 👩🏻‍🔬 Insights
 
  - 🏃🏻‍♂️‍➡️ **Run** `clean-mac.run` regularly (e.g., weekly) to keep your system running at peak performance.
  - 🧪 **Tested on** macOS on Apple’s ARM-based processors (Apple Silicon)
- - 🔐 **Safe & Non-destructive** All actions are safe cleanup tasks that won’t change system settings or configurations.
+ - 🔐 **Non-destructive** All actions are safe cleanup tasks that won’t change system settings or configurations.
 
 ### ꧁.˳·˖✶𓆩 Give your Mac a fresh start — safely, quickly, and with confidence 𓆪✶˖·˳.꧂
