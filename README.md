@@ -4,8 +4,8 @@
 
 `clean-mac.run`  
 
-**Author** : Prasit Bikash Chanda  
-**Platform** : macOS powered by Apple Silicon (M1, M2, M3, M4)
+**Author**   : `Prasit Bikash Chanda`  
+**Platform** : `macOS powered by Apple Silicon (M1, M2, M3, M4)`
 
 ### ᥫ᭡١٥٧٤♡ ⋆˚꩜｡ ✮⋆˙ ᢉ𐭩
 
@@ -61,22 +61,12 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ## 👩🏻‍💻 How to Use?
 
-   1. **Download:** Save the `clean-mac.run` in your workspace.
-   2. **Make Executable:**  
-   ```sh
-   chmod +x clean-mac.run
-   ```
- 3. **Clear the quarantine flag (for internet-downloaded files):**  
-   ```sh
-   xattr -d com.apple.quarantine clean-mac.run
-   ```
- 4. **Run clean-mac.run:**  
-   ```sh
-   ./clean-mac.run
-   ```
- 5. **Check Logs:**  
-  A log file (e.g., clean-mac-1753110067.log) is saved in the folder where you run clean-mac.
-
+ - **Download:** Save the `clean-mac.run` in your workspace.
+ - **Make Executable:** `chmod +x clean-mac.run`
+ - **Clear the quarantine flag:** `xattr -d com.apple.quarantine clean-mac.run`
+ - **Run clean-mac.run:** `./clean-mac.run`
+ - **Check Logs:** `e.g. clean-mac-1753110067.log`
+    
 ## 👩🏻‍🔬 Tips
 
  - 🏃🏻‍♂️‍➡️ **Run** `clean-mac.run` regularly (e.g., weekly) to keep your system running at peak performance.
