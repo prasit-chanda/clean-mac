@@ -2,10 +2,10 @@
 
 # 🫧 Clean Smart, not Hard
 
-`clean-mac`  
+`clean-mac.run`  
 
 **Author** : Prasit Bikash Chanda  
-**Platform** : macOS   
+**Platform** : macOS (Apple Silicon)
 
  ᥫ᭡١٥٧٤♡ ⋆˚꩜｡ ✮⋆˙ ᢉ𐭩
 
@@ -13,7 +13,7 @@
 
 ## 🤷 What is clean-mac?
 
-**🫧 clean-mac** politely barges into your Mac, checks if it has the tools to do its 
+**🫧 clean-mac.run** politely barges into your Mac, checks if it has the tools to do its 
 job (and installs them if you’ve been slacking), then proceeds to clean up your digital 
 dumpster — clearing caches, logs, temp files, Trash, Xcode junk, ancient iOS backups, 
 Docker leftovers, and even those decade-old Downloads you forgot about. It frees up 
@@ -69,18 +69,18 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ## 👵🏼 How to Use
 
-1. **Download:** Save the `clean-mac` in your workspace.
+1. **Download:** Save the `clean-mac.run` in your workspace.
 2. **Make Executable:**  
    ```sh
-   chmod +x clean-mac
+   chmod +x clean-mac.run
    ```
 3. **Clear the quarantine flag (for internet-downloaded files):**  
    ```sh
-   xattr -d com.apple.quarantine clean-mac
+   xattr -d com.apple.quarantine clean-mac.run
    ```
-4. **Run clean-mac:**  
+4. **Run clean-mac.run:**  
    ```sh
-   ./clean-mac
+   ./clean-mac.run
    ```
 5. **Check Logs:**  
   A log file (e.g., clean-mac-1753110067.log) is saved in the folder where you run clean-mac.
