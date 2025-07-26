@@ -21,33 +21,33 @@ little automation it is. All that, with zero cost and maximum attitude.
 
 ## 💃🏻 Features
 
- - 🎁 **Completely Free:** 100% free for all Mac users — no ads, no strings.
+🎁 **Completely Free:** 100% free for all Mac users — no ads, no strings.
 
- - ⚡ **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
+⚡ **One-Click Cleanup:** Cleans caches, logs, temp files, Downloads, and Trash effortlessly.
 
- - 🍺 **Homebrew Support:** Removes old files and checks for missing dependencies automatically.
+🍺 **Homebrew Support:** Removes old files and checks for missing dependencies automatically.
 
- - 🖥️ **System Info:** Displays your Mac’s OS version, hardware specs, network, and uptime.
+🖥️ **System Info:** Displays your Mac’s OS version, hardware specs, network, and uptime.
 
- - 📟 **Clear Output:** Color-coded, step-by-step terminal messages for every action.
+📟 **Clear Output:** Color-coded, step-by-step terminal messages for every action.
 
- - 📝 **Full Log:** Generates a timestamped log file for each session for future review.
+📝 **Full Log:** Generates a timestamped log file for each session for future review.
 
- - ✨ **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
+✨ **Xcode Cleanup:** Deletes DerivedData and device support files to reclaim space.
 
- - 🍎 **iOS Backup Removal:** Clears old iOS device backups (if found).
+🍎 **iOS Backup Removal:** Clears old iOS device backups (if found).
 
- - 🐳 **Docker Cleanup:** Prunes unused containers, images, and volumes safely.
+🐳 **Docker Cleanup:** Prunes unused containers, images, and volumes safely.
 
- - 📂 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
+📂 **Temp & Download Sweep:** Removes old temp files (3+ days) and Downloads (7+ days).
 
- - 🍺 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
+🍺 **Homebrew Maintenance:** Cleans cache and removes outdated packages.
 
- - 🧠 **Memory Optimizer:** Frees up inactive memory to improve responsiveness.
+🧠 **Memory Optimizer:** Frees up inactive memory to improve responsiveness.
 
- - 📋 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
+📋 **Reclaim Summary:** Shows space recovered and tasks completed in a final report.
 
- - 🔒 **Safe Exit:** Gracefully terminates all background jobs on script completion.
+🔒 **Safe Exit:** Gracefully terminates all background jobs on script completion.
 
 ## 👀 What You See?
 
@@ -59,7 +59,7 @@ little automation it is. All that, with zero cost and maximum attitude.
 
  - ✍️ **Summary:** Total disk and memory space freed along with execution timeframe.
 
-## 👩🏻‍💻 How to Use?
+## 🤷 How to Use?
 
  - **Download** the `clean-mac.run` in your workspace.
  - **Make it Executable** by `chmod +x clean-mac.run`
